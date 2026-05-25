@@ -101,9 +101,9 @@ export class Engine {
   }
 
   _initLights() {
-    // Phase 8.7: 다크 톤 — ambient 더 어둡게, directional 약한 보라 빛
-    this.scene.add(new THREE.AmbientLight(0xC5CAE9, 0.4))
-    const sun = new THREE.DirectionalLight(0xC5CAE9, 0.65)
+    // Phase 8.7: 다크 톤 유지하면서 캐릭터 가독성 확보
+    this.scene.add(new THREE.AmbientLight(0xC5CAE9, 0.75))
+    const sun = new THREE.DirectionalLight(0xE8EAF6, 1.05)
     sun.position.set(10, 20, 10)
     sun.castShadow = true
     sun.shadow.mapSize.width = 1024
@@ -113,8 +113,12 @@ export class Engine {
     sun.shadow.camera.top = 20
     sun.shadow.camera.bottom = -20
     this.scene.add(sun)
+    // 캐릭터 위쪽 보조등 (살색/옷 톤 살리기)
+    const keyFill = new THREE.PointLight(0xFFE0B2, 0.55, 18)
+    keyFill.position.set(0, 6, 4)
+    this.scene.add(keyFill)
     // 시안 분위기등 — 게이트/총알 강조
-    const cyanFill = new THREE.PointLight(0x00BCD4, 0.6, 30)
+    const cyanFill = new THREE.PointLight(0x00BCD4, 0.5, 30)
     cyanFill.position.set(0, 8, -10)
     this.scene.add(cyanFill)
   }
