@@ -10,8 +10,8 @@ const MAX_INSTANCES = CROWD_MAX
 const AXIS_X = new THREE.Vector3(1, 0, 0)
 const SCALE_ONE = new THREE.Vector3(1, 1, 1)
 
-// 티셔츠 4색 (§10-1-2)
-const FRIEND_COLORS = [0xF4A300, 0xE91E63, 0x9C27B0, 0x4CAF50]
+// Phase 8.7: 다크 톤 티셔츠 4색 (Hades 팔레트)
+const FRIEND_COLORS = [0x006064, 0x6A1B9A, 0x283593, 0x424242]
 
 export class Crowd {
   constructor() {
@@ -19,6 +19,7 @@ export class Crowd {
     this.friendCount = 0
     this.walkPhase = 0
     this.smoothX = 0
+    this.smoothZ = 0   // Phase 8.6: 리더 z 추적
 
     const mat = (color) => new THREE.MeshStandardMaterial({ color })
 
@@ -67,14 +68,14 @@ export class Crowd {
   add(n = 1) { this.setCount(this.count + n) }
 
   // v2.3.1 §8.0.5 — 집중 포화: 군단 중 N명 무작위 선택 (월드 좌표 반환)
-  // 풀: 리더(leaderX, 0) + 친구(leaderX + ox, oz). 매번 다른 멤버.
-  pickRandomMembers(count, leaderX) {
-    const pool = [{ x: leaderX, z: 0 }]
+  // 풀: 리더(leaderX, leaderZ) + 친구(leaderX + ox, leaderZ + oz). 매번 다른 멤버.
+  pickRandomMembers(count, leaderX, leaderZ = 0) {
+    const pool = [{ x: leaderX, z: leaderZ }]
     if (this.friendCount > 0) {
       const positions = wedgeFormation(this.friendCount)
       for (let i = 0; i < this.friendCount; i++) {
         const [ox, oz] = positions[i]
-        pool.push({ x: this.smoothX + ox, z: oz })
+        pool.push({ x: this.smoothX + ox, z: this.smoothZ + oz })
       }
     }
     // Fisher–Yates partial shuffle (필요한 count만 섞음)
@@ -86,14 +87,18 @@ export class Crowd {
     return pool.slice(0, n)
   }
 
-  update(leaderX) {
+  update(leaderX, leaderZ = 0, isRetreating = false) {
     this.smoothX += (leaderX - this.smoothX) * 0.2
+    this.smoothZ += (leaderZ - this.smoothZ) * 0.2
 
     if (this.friendCount === 0) return
 
-    this.walkPhase += 0.25
-    const swing = Math.sin(this.walkPhase) * 0.3
-    const bob = Math.abs(Math.sin(this.walkPhase)) * 0.05
+    // 후퇴 중에는 걷기 정지 (다리 천천히 휴식 자세로)
+    const phaseStep = isRetreating ? 0 : 0.25
+    this.walkPhase += phaseStep
+    const swingRaw = Math.sin(this.walkPhase) * 0.3
+    const swing = isRetreating ? swingRaw * 0.1 : swingRaw
+    const bob = isRetreating ? 0 : Math.abs(Math.sin(this.walkPhase)) * 0.05
     const positions = wedgeFormation(this.friendCount)
 
     const m = this._m
@@ -109,7 +114,7 @@ export class Crowd {
       const [ox, oz] = positions[i]
       const bx = this.smoothX + ox
       const by = bob
-      const bz = oz  // 주인공(z=0) 뒤로
+      const bz = this.smoothZ + oz  // Phase 8.6: 리더 z 따라 함께 이동
 
       p.set(bx, by + 0.85, bz); q.copy(identity)
       m.compose(p, q, SCALE_ONE); this.parts.body.setMatrixAt(i, m)

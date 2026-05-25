@@ -16,19 +16,24 @@ const CROWD_COLLIDE_X = 2.5      // v2.3: 적 크기 1.5배 보정
 // === §10-3-3 모양 빌더 ===
 
 const BUILDERS = {
-  // 책 3권 적층
+  // 책 3권 적층 — Phase 8.7: 다크 우드 + 가장자리 emissive
   HOMEWORK() {
     const group = new THREE.Group()
     const books = [
-      { w: 0.85, h: 0.20, d: 0.6, color: 0x6D4C41 },
-      { w: 0.75, h: 0.22, d: 0.55, color: 0x8D6E63 },
-      { w: 0.8,  h: 0.17, d: 0.5,  color: 0xA1887F },
+      { w: 0.85, h: 0.20, d: 0.6,  color: 0x3E2723 },
+      { w: 0.75, h: 0.22, d: 0.55, color: 0x4E342E },
+      { w: 0.8,  h: 0.17, d: 0.5,  color: 0x5D4037 },
     ]
     let y = 0
     for (const b of books) {
       const m = new THREE.Mesh(
         new THREE.BoxGeometry(b.w, b.h, b.d),
-        new THREE.MeshStandardMaterial({ color: b.color }),
+        new THREE.MeshStandardMaterial({
+          color: b.color,
+          emissive: 0x5D4037,
+          emissiveIntensity: 0.2,
+          roughness: 0.7,
+        }),
       )
       m.position.y = y + b.h / 2
       m.castShadow = true
@@ -165,7 +170,7 @@ export class EnemyManager {
     }
   }
 
-  update(envSpeed, leaderX, onCrowdHit) {
+  update(envSpeed, leaderX, onCrowdHit, leaderZ = 0) {
     if (this._forceWaveCountdown > 0) {
       this._forceWaveCountdown -= 1
       if (this._forceWaveCountdown === 0) this.spawnTimer = this.spawnInterval
@@ -196,8 +201,8 @@ export class EnemyManager {
       e.z += envSpeed + e.type.speed
       e.mesh.position.z = e.z
 
-      // 군단 충돌 (적이 군단 영역 진입 + leaderX와 X축 근접)
-      if (!e.dead && e.z >= CROWD_COLLIDE_Z && Math.abs(e.x - leaderX) <= CROWD_COLLIDE_X) {
+      // 군단 충돌 (적이 군단 영역 진입 + leaderX와 X축 근접) — Phase 8.6: 리더 z 따라 라인 이동
+      if (!e.dead && e.z >= CROWD_COLLIDE_Z + leaderZ && Math.abs(e.x - leaderX) <= CROWD_COLLIDE_X) {
         e.dead = true
         e.dying = true
         onCrowdHit?.(e)

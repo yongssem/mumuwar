@@ -56,7 +56,7 @@ export class Engine {
     this.shake = 0
     this.elapsedFrames = 0
     this.timeUp = false
-    this.state = { speed: getGradeSpeed(grade), targetX: 0, currentX: 0 }
+    this.state = { speed: getGradeSpeed(grade), targetX: 0, currentX: 0, targetZ: 0, currentZ: 0 }
     this.dashes = []
     this.trees = []
     this.running = false
@@ -91,7 +91,8 @@ export class Engine {
   _initScene() {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(COLORS.sky)
-    this.scene.fog = new THREE.Fog(COLORS.sky, 30, 80)
+    // Phase 8.7: 다크 톤 — fog 가까이 (15→60) 깊이감 + 윤곽 사라짐 효과
+    this.scene.fog = new THREE.Fog(COLORS.sky, 15, 60)
 
     // §10-6
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
@@ -100,8 +101,9 @@ export class Engine {
   }
 
   _initLights() {
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6))
-    const sun = new THREE.DirectionalLight(0xffffff, 0.8)
+    // Phase 8.7: 다크 톤 — ambient 더 어둡게, directional 약한 보라 빛
+    this.scene.add(new THREE.AmbientLight(0xC5CAE9, 0.4))
+    const sun = new THREE.DirectionalLight(0xC5CAE9, 0.65)
     sun.position.set(10, 20, 10)
     sun.castShadow = true
     sun.shadow.mapSize.width = 1024
@@ -111,12 +113,21 @@ export class Engine {
     sun.shadow.camera.top = 20
     sun.shadow.camera.bottom = -20
     this.scene.add(sun)
+    // 시안 분위기등 — 게이트/총알 강조
+    const cyanFill = new THREE.PointLight(0x00BCD4, 0.6, 30)
+    cyanFill.position.set(0, 8, -10)
+    this.scene.add(cyanFill)
   }
 
   _initRoad() {
     this.road = new THREE.Mesh(
       new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
-      new THREE.MeshStandardMaterial({ color: COLORS.road }),
+      new THREE.MeshStandardMaterial({
+        color: COLORS.road,
+        emissive: COLORS.roadEmissive,
+        emissiveIntensity: 0.15,
+        roughness: 0.85,
+      }),
     )
     this.road.rotation.x = -Math.PI / 2
     this.road.receiveShadow = true
@@ -124,7 +135,7 @@ export class Engine {
 
     this.grass = new THREE.Mesh(
       new THREE.PlaneGeometry(40, ROAD_LENGTH),
-      new THREE.MeshStandardMaterial({ color: COLORS.grass }),
+      new THREE.MeshStandardMaterial({ color: COLORS.grass, roughness: 1 }),
     )
     this.grass.rotation.x = -Math.PI / 2
     this.grass.position.y = -0.01
@@ -166,11 +177,24 @@ export class Engine {
   }
 
   _initTrees() {
+    // Phase 8.7: 다크 퍼플 기둥 + 시안 발광 잎 (야간 숲 톤)
+    const trunkMat = new THREE.MeshStandardMaterial({
+      color: COLORS.trunk,
+      emissive: COLORS.trunk,
+      emissiveIntensity: 0.15,
+      roughness: 0.7,
+    })
+    const leafMat = new THREE.MeshStandardMaterial({
+      color: COLORS.leaf,
+      emissive: COLORS.leafEmissive,
+      emissiveIntensity: 0.35,
+      roughness: 0.5,
+    })
     for (let i = 0; i < 30; i++) {
       const tree = new THREE.Group()
       const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.2, 0.3, 1, 8),
-        new THREE.MeshStandardMaterial({ color: COLORS.trunk }),
+        trunkMat,
       )
       trunk.position.y = 0.5
       trunk.castShadow = true
@@ -178,7 +202,7 @@ export class Engine {
 
       const leaf = new THREE.Mesh(
         new THREE.ConeGeometry(0.8, 1.8, 8),
-        new THREE.MeshStandardMaterial({ color: COLORS.leaf }),
+        leafMat,
       )
       leaf.position.y = 1.9
       leaf.castShadow = true
@@ -206,9 +230,13 @@ export class Engine {
     this._rafId = requestAnimationFrame(this._tick)
 
     this.state.currentX += (this.state.targetX - this.state.currentX) * PLAYER_SMOOTH
+    this.state.currentZ += (this.state.targetZ - this.state.currentZ) * PLAYER_SMOOTH
+    // Phase 8.6: 후퇴 중 판정 — z>0이거나 후퇴 입력 진행 중
+    const isRetreating = this.state.currentZ > 0.05 || (this.state.targetZ - this.state.currentZ) > 0.01
     this.player.setX(this.state.currentX)
-    this.player.update()
-    this.crowd.update(this.state.currentX)
+    this.player.setZ(this.state.currentZ)
+    this.player.update(isRetreating)
+    this.crowd.update(this.state.currentX, this.state.currentZ, isRetreating)
 
     // 시간 카운트 (게임플레이 진행 중에만)
     if (this.phase === PHASE.PLAYING) {
@@ -237,19 +265,21 @@ export class Engine {
       this.gates.update(this.state.speed, this.state.currentX, {
         onPass: (r) => this._handleGatePass(r),
         onCollide: (r) => this._handleGateCollide(r),
-      })
+      }, this.state.currentZ)
     }
     this.bursts.update(this.state.speed)
 
     // 적 갱신 — 군단 충돌 시 친구 차감
     if (this.phase === PHASE.PLAYING || this.phase === PHASE.BOSS) {
       this.enemies.update(this.state.speed, this.state.currentX, (enemy) => {
+        // collision callback
+
         const after = Math.max(0, this.crowd.count - enemy.type.collisionDamage)
         this.crowd.setCount(after)
         this.bursts.spawn(enemy.mesh.position.clone(), 0xff0000)
         this.onCountChange?.(after)
         if (after <= 0) this._setPhase(PHASE.GAMEOVER)
-      })
+      }, this.state.currentZ)
     }
     this.floaters.update(this.state.speed)
 
@@ -277,7 +307,7 @@ export class Engine {
       const totalDamage = Math.max(1, Math.round(w.damage * Math.sqrt(totalCrowd)))
       const perBulletDamage = Math.max(1, Math.round(totalDamage / shooterCount))
       const SPREAD_ANGLE = 0.075 // ±0.075 라디안 (≈4도)
-      const shooters = this.crowd.pickRandomMembers(shooterCount, this.state.currentX)
+      const shooters = this.crowd.pickRandomMembers(shooterCount, this.state.currentX, this.state.currentZ)
       for (const s of shooters) {
         const vx = (Math.random() - 0.5) * 2 * SPREAD_ANGLE * 1.4 // 진행속도(1.4)에 비례한 x속도
         this.bullets.spawn(s.x, s.z, perBulletDamage, vx, 1.0)
@@ -292,7 +322,9 @@ export class Engine {
       if (result?.killed) {
         const enemy = result.enemy
         this.score += enemy.type.score
-        this.bursts.spawn(enemy.mesh.position.clone(), enemy.type.color, 1.5)
+        // Phase 8.5: 파편 12개 + 흰 섬광
+        this.bursts.spawn(enemy.mesh.position.clone(), enemy.type.color, 1.6, 12)
+        this.bursts.spawnFlash(enemy.mesh.position.clone(), 1.4)
         this.floaters.spawn(enemy.mesh.position.clone(), `+${enemy.type.score}`, '#FFD700', 2)
         playSfx('kill')
         this.onScoreChange?.(this.score)
@@ -304,20 +336,23 @@ export class Engine {
       const gateResult = this.gates.checkBulletHit(b)
       if (gateResult?.broken) {
         const g = gateResult.gate
-        // 큰 노란 burst (게이트 깨짐)
-        this.bursts.spawn(g.position.clone().setY(1.5), 0xFFD600, 2.0)
-        this.bursts.spawn(g.position.clone().setY(1.5), 0xFFFFFF, 1.5)
+        // Phase 8.5: 30개 파편 + 시안 충격파 + 흔들림 20
+        const isCorrect = g.userData.isCorrect
+        const burstColor = isCorrect ? 0x00FFFF : 0xE53935
+        const center = g.position.clone().setY(1.8)
+        this.bursts.spawn(center, burstColor, 2.4, 30)
+        this.bursts.spawnFlash(center, 2.2)
+        this.bursts.spawnShockwave(g.position.clone(), burstColor, 4, 40)
+        this.shake = Math.max(this.shake, 20)
         g.visible = false
         return true
       }
       if (gateResult?.hit) {
-        // 작은 파편 (15% 확률로만 — 너무 자주면 시각 노이즈)
-        if (Math.random() < 0.15) {
-          this.bursts.spawn(
-            new THREE.Vector3(b.x, b.y, gateResult.gate.position.z),
-            0xFFEB3B, 0.5,
-          )
-        }
+        // Phase 8.5: 명중 파편 5개 (작은 시안 폭발)
+        this.bursts.spawn(
+          new THREE.Vector3(b.x, b.y, gateResult.gate.position.z),
+          0x00B4FF, 0.4, 5,
+        )
         return true
       }
       if (this.boss && this.boss.hitTest(b)) {
@@ -358,6 +393,9 @@ export class Engine {
     }
 
     this.camera.position.x += (this.state.currentX * 0.25 - this.camera.position.x) * 0.1
+    // Phase 8.6: 카메라가 플레이어 z의 30%만 따라가 게이트 시야 유지
+    const targetCamZ = 11 + this.state.currentZ * 0.3
+    this.camera.position.z += (targetCamZ - this.camera.position.z) * 0.1
 
     // 충돌 시 화면 흔들림 (§3-3)
     let shakeY = 0
@@ -390,8 +428,14 @@ export class Engine {
     const before = this.crowd.count
     const after = Math.max(0, before + delta)
     this.crowd.setCount(after)
-    this.bursts.spawn(r.position, r.correct ? 0x4CAF50 : 0xE53935)
-    this.floaters.spawn(r.position, (delta >= 0 ? `+${delta}` : `${delta}`), r.correct ? '#4CAF50' : '#E53935')
+    this.bursts.spawn(r.position, r.correct ? 0x4CAF50 : 0xE53935, 1, 18)
+    // Phase 8.5: +1 다발 + 메가 텍스트
+    if (r.correct) {
+      this.floaters.spawnBurst(r.position, '+1', '#4CAF50', delta)
+      this.floaters.spawnMega(r.position, `+${delta} 💪`, '#FFD600')
+    } else {
+      this.floaters.spawn(r.position, `${delta}`, '#E53935', 1.2)
+    }
     playSfx(r.correct ? 'correct' : 'wrong')
     if (r.correct) playSfx('recruit')
     this.onCountChange?.(this.crowd.count)

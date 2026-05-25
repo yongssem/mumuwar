@@ -8,12 +8,12 @@ export const PLAYER_SMOOTH = 0.15
 // 학년별 속도 배율 — 낮은 학년일수록 천천히 (문제 읽을 시간 확보)
 // 3학년 = 1.0 기준
 export const GRADE_SPEED_MULT = {
-  1: 0.55,
-  2: 0.72,
-  3: 1.00,
-  4: 1.05,
-  5: 1.10,
-  6: 1.15,
+  1: 0.45,
+  2: 0.60,
+  3: 0.82,
+  4: 0.72,
+  5: 0.65,
+  6: 0.58,
 }
 
 export function getGradeSpeed(grade) {
@@ -31,14 +31,17 @@ export const GATE_BASE_REWARD = 20
 export const GATE_BASE_PENALTY = 10
 export const GATE_COLOR = '#4A90E2'           // 좌/우 동일 (§3-5)
 
+// Phase 8.7: Hades/NecroDancer 다크 톤 통일
 export const COLORS = {
-  sky: 0x87CEEB,
-  road: 0xE8D9B5,
-  grass: 0x7CB342,
-  laneDash: 0xFFFFFF,
-  body: 0x4A90E2,
-  skin: 0xFFDBAC,
-  pants: 0x1a3a5c,
-  trunk: 0x6B4423,
-  leaf: 0x2E7D32,
+  sky: 0x1A1830,       // 다크 인디고
+  road: 0x2A2640,      // 검보라
+  roadEmissive: 0x1A1638,
+  grass: 0x0F0E1A,     // 거의 검정
+  laneDash: 0xFFC107,  // 골드 액센트
+  body: 0x4A90E2,      // 리더 본체 (모자 식별용으로 유지)
+  skin: 0xE0BC8C,      // 채도 낮춤
+  pants: 0x1a1530,     // 다크 인디고
+  trunk: 0x4A148C,     // 다크 퍼플
+  leaf: 0x1A237E,      // 다크 인디고
+  leafEmissive: 0x00BCD4, // 시안 글로우
 }

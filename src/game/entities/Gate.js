@@ -18,11 +18,12 @@ export const GATE_WRONG_HP   = 200
 export const GATE_COLLISION_PENALTY = 10
 
 const GATE_WIDTH = ROAD_WIDTH / 2 - 0.1
-const GATE_HEIGHT = 3
-const GATE_THICKNESS = 0.15
+const GATE_HEIGHT = 4.0   // Phase 8.5: 3 → 4 (압도감)
+const GATE_THICKNESS = 0.2
+const FRAME_THICKNESS = 0.22
 
-const PROBLEM_PANEL_WIDTH = ROAD_WIDTH * 0.9
-const PROBLEM_PANEL_HEIGHT = 1.2
+const PROBLEM_PANEL_WIDTH = ROAD_WIDTH * 0.95
+const PROBLEM_PANEL_HEIGHT = 1.4
 
 // HP 바: 가로 게이트 폭 거의 다 + 두꺼움 + 텍스트
 const HP_BAR_WIDTH = GATE_WIDTH * 0.98
@@ -31,37 +32,53 @@ const HP_CANVAS_W = 512
 const HP_CANVAS_H = 96
 
 function makeAnswerTexture(text) {
+  // Phase 8.5: 투명 배경 + 흰 글씨 + 다크 외곽선 (게이트 패널이 배경 역할)
   const c = document.createElement('canvas')
-  c.width = 256
-  c.height = 128
+  c.width = 512
+  c.height = 256
   const ctx = c.getContext('2d')
-  ctx.fillStyle = GATE_COLOR
-  ctx.fillRect(0, 0, 256, 128)
-  ctx.fillStyle = 'white'
-  ctx.font = 'bold 80px sans-serif'
+  ctx.clearRect(0, 0, 512, 256)
+  ctx.font = 'bold 200px "JetBrains Mono", "Pretendard", monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(text, 128, 70)
+  // 두꺼운 다크 외곽선
+  ctx.lineWidth = 16
+  ctx.strokeStyle = '#0D1B2A'
+  ctx.lineJoin = 'round'
+  ctx.strokeText(text, 256, 130)
+  // 흰 본문
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillText(text, 256, 130)
   const tex = new THREE.CanvasTexture(c)
   tex.needsUpdate = true
   return tex
 }
 
 function makeProblemTexture(question) {
+  // Phase 8.5: 다크 글래스 + 골드 테두리 (Hades 톤)
   const c = document.createElement('canvas')
-  c.width = 768
-  c.height = 192
+  c.width = 1024
+  c.height = 256
   const ctx = c.getContext('2d')
-  ctx.fillStyle = '#FFFFFF'
-  ctx.fillRect(0, 0, 768, 192)
-  ctx.strokeStyle = GATE_COLOR
-  ctx.lineWidth = 8
-  ctx.strokeRect(4, 4, 760, 184)
-  ctx.fillStyle = '#1a1a2e'
-  ctx.font = 'bold 96px sans-serif'
+  // 다크 반투명 배경
+  ctx.fillStyle = 'rgba(15, 14, 26, 0.92)'
+  ctx.fillRect(0, 0, 1024, 256)
+  // 골드 테두리 (이중)
+  ctx.strokeStyle = '#FFC107'
+  ctx.lineWidth = 5
+  ctx.strokeRect(6, 6, 1012, 244)
+  ctx.strokeStyle = 'rgba(255,193,7,0.4)'
+  ctx.lineWidth = 2
+  ctx.strokeRect(14, 14, 996, 228)
+  // 골드 텍스트
+  ctx.font = 'bold 120px "JetBrains Mono", "Pretendard", monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(question, 384, 100)
+  ctx.shadowColor = 'rgba(255,214,0,0.7)'
+  ctx.shadowBlur = 20
+  ctx.fillStyle = '#FFD600'
+  ctx.fillText(question, 512, 128)
+  ctx.shadowBlur = 0
   const tex = new THREE.CanvasTexture(c)
   tex.needsUpdate = true
   return tex
@@ -113,12 +130,15 @@ function buildAnswerGate(answerText, maxHp, isCorrect) {
   const group = new THREE.Group()
 
   // §3-5: 정답/오답 둘 다 같은 색
+  // Phase 8.5: 다크 글래스 톤 + emissive
   const wallMat = new THREE.MeshStandardMaterial({
-    color: GATE_COLOR,
+    color: 0x4A90E2,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.62,
     side: THREE.DoubleSide,
     depthWrite: false,
+    emissive: 0x2196F3,
+    emissiveIntensity: 0.4,
   })
   const wall = new THREE.Mesh(
     new THREE.BoxGeometry(GATE_WIDTH, GATE_HEIGHT, GATE_THICKNESS),
@@ -127,13 +147,51 @@ function buildAnswerGate(answerText, maxHp, isCorrect) {
   wall.position.y = GATE_HEIGHT / 2
   group.add(wall)
 
-  // 답 라벨 (양면)
+  // Phase 8.5: 게이트 프레임 — 상하좌우 (발광 다크블루)
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x1976D2,
+    emissive: 0x1976D2,
+    emissiveIntensity: 0.7,
+    metalness: 0.4,
+    roughness: 0.3,
+  })
+  // 상단
+  const topFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(GATE_WIDTH + FRAME_THICKNESS * 2, FRAME_THICKNESS, FRAME_THICKNESS * 1.4),
+    frameMat,
+  )
+  topFrame.position.y = GATE_HEIGHT + FRAME_THICKNESS / 2
+  group.add(topFrame)
+  // 하단
+  const bottomFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(GATE_WIDTH + FRAME_THICKNESS * 2, FRAME_THICKNESS, FRAME_THICKNESS * 1.4),
+    frameMat,
+  )
+  bottomFrame.position.y = -FRAME_THICKNESS / 2 + 0.05
+  group.add(bottomFrame)
+  // 좌측 기둥
+  const leftFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(FRAME_THICKNESS, GATE_HEIGHT + FRAME_THICKNESS * 2, FRAME_THICKNESS * 1.4),
+    frameMat,
+  )
+  leftFrame.position.set(-GATE_WIDTH / 2 - FRAME_THICKNESS / 2, GATE_HEIGHT / 2, 0)
+  group.add(leftFrame)
+  // 우측 기둥
+  const rightFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(FRAME_THICKNESS, GATE_HEIGHT + FRAME_THICKNESS * 2, FRAME_THICKNESS * 1.4),
+    frameMat,
+  )
+  rightFrame.position.set(GATE_WIDTH / 2 + FRAME_THICKNESS / 2, GATE_HEIGHT / 2, 0)
+  group.add(rightFrame)
+
+  // 답 라벨 (양면) — Phase 8.5: 더 크게
   const labelTex = makeAnswerTexture(String(answerText))
   const labelMat = new THREE.MeshBasicMaterial({
     map: labelTex,
     side: THREE.DoubleSide,
+    transparent: true,
   })
-  const labelGeo = new THREE.PlaneGeometry(GATE_WIDTH * 0.85, 1.3)
+  const labelGeo = new THREE.PlaneGeometry(GATE_WIDTH * 0.9, 2.0)
   const labelFront = new THREE.Mesh(labelGeo, labelMat)
   labelFront.position.set(0, GATE_HEIGHT / 2, GATE_THICKNESS / 2 + 0.02)
   group.add(labelFront)
@@ -230,7 +288,7 @@ export class GateManager {
     this.nextSpawnZ -= this.spawnInterval
   }
 
-  update(speed, leaderX, callbacks) {
+  update(speed, leaderX, callbacks, leaderZ = 0) {
     while (this.pairs.length < 3) this.spawn()
 
     for (let i = this.pairs.length - 1; i >= 0; i--) {
@@ -240,8 +298,8 @@ export class GateManager {
       pair.right.position.z = pair.z
       pair.panel.position.z = pair.z
 
-      // 통과/충돌 판정 (게이트가 군단 라인 도달)
-      if (!pair.triggered && pair.z >= 0) {
+      // 통과/충돌 판정 (게이트가 리더 라인 도달 — Phase 8.6: 후퇴 시 늦게 트리거)
+      if (!pair.triggered && pair.z >= leaderZ) {
         pair.triggered = true
         const hit = leaderX < 0 ? pair.left : pair.right
         const d = hit.userData

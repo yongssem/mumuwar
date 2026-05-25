@@ -102,8 +102,19 @@ export class Player {
   }
 
   setX(x) { this.group.position.x = x }
+  setZ(z) { this.group.position.z = z }
 
-  update() {
+  // Phase 8.6: 후퇴 중에는 걷기 애니메이션 정지 (서 있는 느낌)
+  update(isRetreating = false) {
+    if (isRetreating) {
+      // 다리/팔 천천히 휴식 자세로 복귀
+      this.leftLeg.rotation.x *= 0.85
+      this.rightLeg.rotation.x *= 0.85
+      this.leftArm.rotation.x *= 0.85
+      this.rightArm.rotation.x *= 0.85
+      this.group.position.y *= 0.85
+      return
+    }
     this.walkPhase += 0.25
     const swing = Math.sin(this.walkPhase) * 0.3
     this.leftLeg.rotation.x = swing

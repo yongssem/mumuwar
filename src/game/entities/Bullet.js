@@ -31,24 +31,25 @@ export class BulletPool {
     this.weaponLv = 1
     this._factory = getWeaponFactory(1)
 
-    // 머즐 플래시 텍스처 (sprite 풀 공유)
+    // 머즐 플래시 텍스처 (sprite 풀 공유) — Phase 8.5: 시안 톤 + 크게
     const muzzleCanvas = document.createElement('canvas')
-    muzzleCanvas.width = 64; muzzleCanvas.height = 64
+    muzzleCanvas.width = 128; muzzleCanvas.height = 128
     const mctx = muzzleCanvas.getContext('2d')
-    const grad = mctx.createRadialGradient(32, 32, 4, 32, 32, 32)
-    grad.addColorStop(0, 'rgba(255,255,200,1)')
-    grad.addColorStop(0.4, 'rgba(255,200,0,0.8)')
-    grad.addColorStop(1, 'rgba(255,160,0,0)')
+    const grad = mctx.createRadialGradient(64, 64, 4, 64, 64, 64)
+    grad.addColorStop(0, 'rgba(255,255,255,1)')
+    grad.addColorStop(0.3, 'rgba(180,240,255,0.9)')
+    grad.addColorStop(0.7, 'rgba(0,180,255,0.5)')
+    grad.addColorStop(1, 'rgba(0,120,200,0)')
     mctx.fillStyle = grad
-    mctx.fillRect(0, 0, 64, 64)
+    mctx.fillRect(0, 0, 128, 128)
     this.muzzleTex = new THREE.CanvasTexture(muzzleCanvas)
     this.muzzleTex.needsUpdate = true
 
     this.muzzles = []
     for (let i = 0; i < MUZZLE_POOL_SIZE; i++) {
-      const mat = new THREE.SpriteMaterial({ map: this.muzzleTex, transparent: true, depthTest: false, depthWrite: false })
+      const mat = new THREE.SpriteMaterial({ map: this.muzzleTex, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending })
       const sprite = new THREE.Sprite(mat)
-      sprite.scale.set(1.2, 1.2, 1)
+      sprite.scale.set(2.0, 2.0, 1)
       sprite.visible = false
       this.scene.add(sprite)
       this.muzzles.push({ sprite, mat, life: 0 })
@@ -187,7 +188,8 @@ export class BulletPool {
         m.life -= 1
         const t = m.life / MUZZLE_FRAMES
         m.mat.opacity = t
-        m.sprite.scale.set(0.7 + t * 0.8, 0.7 + t * 0.8, 1)
+        const s = 1.3 + (1 - t) * 1.5
+        m.sprite.scale.set(s, s, 1)
         if (m.life <= 0) m.sprite.visible = false
       }
     }
