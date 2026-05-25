@@ -1,0 +1,96 @@
+import { SUPPORTED_GRADES } from '../game/utils/problems.js'
+
+export default function StartScreen({ selectedGrade, highScore, soundOn, onToggleSound, onPick, onStart }) {
+  return (
+    <div className="fixed inset-0 z-30" style={{ background: 'var(--bg-primary)' }}>
+      {/* 배경 이미지 */}
+      <div
+        style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'url(/assets/images/landing-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+
+      {/* 비네팅 + 어두운 그라데이션 */}
+      <div
+        style={{
+          position: 'absolute', inset: 0,
+          background: `
+            radial-gradient(circle at center, transparent 30%, rgba(15,14,26,0.85) 100%),
+            linear-gradient(180deg, rgba(15,14,26,0.5) 0%, rgba(15,14,26,0.95) 100%)
+          `,
+        }}
+      />
+
+      {/* 사운드 토글 */}
+      <button
+        onClick={onToggleSound}
+        className="absolute top-5 right-5 w-12 h-12 rounded-full text-xl text-white active:scale-95 z-20"
+        style={{
+          background: 'var(--bg-glass)',
+          border: '1px solid var(--border-default)',
+          backdropFilter: 'blur(8px)',
+        }}
+        aria-label={soundOn ? '사운드 끄기' : '사운드 켜기'}
+      >
+        {soundOn ? '🔊' : '🔇'}
+      </button>
+
+      {/* 메인 모달 — 하단 정렬 (배경 이미지의 타이틀과 안 겹치게) */}
+      <div className="relative z-10 h-full flex flex-col items-center justify-end px-4 pb-8">
+        <div className="modal-content w-full max-w-[420px]" style={{ paddingTop: 22, paddingBottom: 22 }}>
+          <div className="modal-accent-top" />
+
+          {highScore > 0 && (
+            <p style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              letterSpacing: '0.18em',
+              margin: '0 0 14px',
+            }}>
+              <span style={{ color: 'var(--accent-gold)' }}>⚡</span> HIGH SCORE · {highScore.toLocaleString()}
+            </p>
+          )}
+
+          <button onClick={onStart} className="btn-primary-large" style={{ marginBottom: 16 }}>
+            게임 시작 <span style={{ marginLeft: 6 }}>▶</span>
+          </button>
+
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: 'var(--text-muted)',
+            letterSpacing: '0.25em',
+            textAlign: 'center',
+            marginBottom: 8,
+          }}>
+            SELECT GRADE
+          </div>
+
+          <div className="grade-grid">
+            {SUPPORTED_GRADES.map((g) => (
+              <button
+                key={g}
+                onClick={() => onPick(g)}
+                className={['grade-btn', g === selectedGrade ? 'active' : ''].join(' ')}
+              >
+                <span className="grade-number">{g}</span>
+                <span className="grade-label">학년</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="modal-accent-bottom" />
+        </div>
+
+        <footer className="game-footer" style={{ marginTop: 12 }}>
+          © 2026 <a href="https://mumuclass.kr" target="_blank" rel="noreferrer">무궁무진클래스</a> · 용쌤
+        </footer>
+      </div>
+    </div>
+  )
+}
