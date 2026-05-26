@@ -35,9 +35,12 @@ export function createDragInput(canvas, state, onFirstInput) {
     const dx = (rawDx / window.innerWidth) * DRAG_SENSITIVITY
     state.targetX = Math.max(-limit, Math.min(limit, state.targetX + dx))
 
-    // Y(후퇴) 입력은 Y 변위가 X보다 클 때만 인정 — 가로 스와이프 중 미세
-    // Y 떨림이 누적되어 캐릭터가 영영 "후퇴 중" 판정되는 버그 방지.
-    if (Math.abs(rawDy) > Math.abs(rawDx)) {
+    // Y(후퇴) 입력은 두 조건 모두 만족할 때만 인정:
+    //  1) Y 변위가 X보다 클 것 — 가로 스와이프 중 미세 Y 떨림 차단
+    //  2) Y 변위가 최소 2px — 손 떨림/터치 잡음 차단
+    // → 의도적 후퇴는 그대로, 누적 버그는 방지. (자동 감쇠는 사용하지 않음)
+    const dyAbs = Math.abs(rawDy)
+    if (dyAbs > Math.abs(rawDx) && dyAbs > 2) {
       const dy = (rawDy / window.innerHeight) * Z_SENSITIVITY
       state.targetZ = Math.max(0, Math.min(RETREAT_MAX, (state.targetZ ?? 0) + dy))
     }
