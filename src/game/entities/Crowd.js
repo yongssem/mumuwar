@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { COLORS, CROWD_START, CROWD_MAX } from '../config.js'
-import { wedgeFormation } from '../utils/formation.js'
+import { calculateSwarmPositions } from '../utils/formation.js'
 
 // GAME_DESIGN v2.1 §10-1-2 — 친구 (Crowd)
 // 주인공은 별도 (Player.js). Crowd는 친구만 InstancedMesh로 관리.
@@ -52,7 +52,20 @@ export class Crowd {
     this._q = new THREE.Quaternion()
     this._p = new THREE.Vector3()
 
+    // 포메이션 캐시 — friendCount 변경 시만 재계산
+    this._cachedPositions = null
+    this._cachedFor = -1
+
     this.setCount(CROWD_START)
+  }
+
+  // 캐시된(또는 새로 계산한) swarm 포메이션 반환
+  _getPositions() {
+    if (this._cachedFor !== this.friendCount) {
+      this._cachedPositions = calculateSwarmPositions(this.friendCount)
+      this._cachedFor = this.friendCount
+    }
+    return this._cachedPositions
   }
 
   // count = 친구 수 (주인공은 항상 별도)
@@ -72,10 +85,10 @@ export class Crowd {
   pickRandomMembers(count, leaderX, leaderZ = 0) {
     const pool = [{ x: leaderX, z: leaderZ }]
     if (this.friendCount > 0) {
-      const positions = wedgeFormation(this.friendCount)
+      const positions = this._getPositions()
       for (let i = 0; i < this.friendCount; i++) {
-        const [ox, oz] = positions[i]
-        pool.push({ x: this.smoothX + ox, z: this.smoothZ + oz })
+        const p = positions[i + 1] // [0]은 leader, 친구는 1부터
+        pool.push({ x: this.smoothX + p.x, z: this.smoothZ + p.z })
       }
     }
     // Fisher–Yates partial shuffle (필요한 count만 섞음)
@@ -98,8 +111,11 @@ export class Crowd {
     this.walkPhase += phaseStep
     const swingRaw = Math.sin(this.walkPhase) * 0.3
     const swing = isRetreating ? swingRaw * 0.1 : swingRaw
-    const bob = isRetreating ? 0 : Math.abs(Math.sin(this.walkPhase)) * 0.05
-    const positions = wedgeFormation(this.friendCount)
+    const bobBase = isRetreating ? 0 : Math.abs(Math.sin(this.walkPhase)) * 0.05
+    const positions = this._getPositions()
+
+    // Phase 8.9: 살아있는 떼거리 — 시간 기반 호흡/흔들림
+    const time = performance.now() * 0.002
 
     const m = this._m
     const q = this._q
@@ -111,10 +127,15 @@ export class Crowd {
     const qArmR = new THREE.Quaternion().setFromAxisAngle(AXIS_X, swing * 0.8)
 
     for (let i = 0; i < this.friendCount; i++) {
-      const [ox, oz] = positions[i]
-      const bx = this.smoothX + ox
-      const by = bob
-      const bz = this.smoothZ + oz  // Phase 8.6: 리더 z 따라 함께 이동
+      const fp = positions[i + 1]   // [0]은 leader, 친구는 1부터
+      const ph = fp.phaseOffset
+      const swayX = Math.sin(time + ph) * 0.08
+      const swayZ = Math.cos(time * 0.7 + ph) * 0.06
+      const swayY = isRetreating ? 0 : Math.abs(Math.sin(time * 2 + ph)) * 0.05
+
+      const bx = this.smoothX + fp.x + swayX
+      const by = bobBase + swayY
+      const bz = this.smoothZ + fp.z + swayZ
 
       p.set(bx, by + 0.85, bz); q.copy(identity)
       m.compose(p, q, SCALE_ONE); this.parts.body.setMatrixAt(i, m)
