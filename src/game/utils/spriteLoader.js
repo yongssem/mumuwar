@@ -10,20 +10,46 @@ const cache = new Map()
 // 적군 1.0 스케일 = 월드 2.2 단위 (기존 Mesh 1.5 스케일과 비슷한 화면 점유)
 export const SPRITE_BASE = 2.2
 
-function loadPixelTexture(url) {
-  if (cache.has(url)) return cache.get(url)
-  const tex = textureLoader.load(
-    url,
-    undefined,
-    undefined,
-    (err) => console.warn(`[spriteLoader] 로드 실패: ${url}`, err),
-  )
+function applyPixelFilters(tex) {
   tex.magFilter = THREE.NearestFilter
   tex.minFilter = THREE.NearestFilter
   tex.generateMipmaps = false
   if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace
   else tex.encoding = THREE.sRGBEncoding
-  cache.set(url, tex)
+  tex.needsUpdate = true
+}
+
+// .png 우선 시도, 실패 시 .jpg 폴백
+function loadPixelTextureWithFallback(name, onReady) {
+  const key = `enemy:${name}`
+  if (cache.has(key)) return cache.get(key)
+
+  const pngUrl = `/assets/sprites/enemies/${name}.png`
+  const jpgUrl = `/assets/sprites/enemies/${name}.jpg`
+
+  const tex = textureLoader.load(
+    pngUrl,
+    (loaded) => {
+      applyPixelFilters(loaded)
+      onReady?.()
+    },
+    undefined,
+    () => {
+      // PNG 없음 → JPG 폴백
+      textureLoader.load(
+        jpgUrl,
+        (loaded) => {
+          tex.image = loaded.image
+          applyPixelFilters(tex)
+          onReady?.()
+        },
+        undefined,
+        (err) => console.warn(`[spriteLoader] 로드 실패: ${name} (png/jpg 모두 없음)`, err),
+      )
+    },
+  )
+  applyPixelFilters(tex)
+  cache.set(key, tex)
   return tex
 }
 
@@ -34,20 +60,24 @@ function loadPixelTexture(url) {
  * @returns {THREE.Sprite}
  */
 export function loadEnemySprite(name, scale = 1.0) {
-  const url = `/assets/sprites/enemies/${name}.png`
-  const tex = loadPixelTexture(url)
   const mat = new THREE.SpriteMaterial({
-    map: tex,
+    map: null,
     transparent: true,
-    alphaTest: 0.5,
+    alphaTest: 0.05,
     depthWrite: false,
   })
+  const tex = loadPixelTextureWithFallback(name, () => {
+    mat.map = tex
+    mat.needsUpdate = true
+  })
+  mat.map = tex
   const sprite = new THREE.Sprite(mat)
+  // 모든 적/보스는 카메라 안에 있을 가능성이 높아 프러스텀 컬링 끄기
+  sprite.frustumCulled = false
   const size = SPRITE_BASE * scale
   sprite.scale.set(size, size, 1)
   // bottom anchor: 스프라이트가 바닥에 서있도록 y = height/2
   sprite.position.y = size / 2
-  // 메타 보관 — Enemy 측에서 흔들림 기준 height로 사용
   sprite.userData.restY = size / 2
   sprite.userData.spriteHeight = size
   return sprite
