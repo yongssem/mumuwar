@@ -481,6 +481,30 @@
   color: var(--color-danger);
   animation: dangerPulse 0.8s ease-in-out infinite;
 }
+/* ====== Phase 8.15 — 인게임 배경 (학원가 야경) ====== */
+.ingame-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/assets/images/stage-bg-academy.jpg');
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  /* 다크 톤 살짝 — 너무 밝지 않게 */
+  filter: brightness(0.85);
+}
+.ingame-bottom-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 55%,
+    rgba(15, 14, 26, 0.45) 100%
+  );
+}
+
 /* ====== Phase 8.14.2 — 라스트 워 톤 HUD (크기 + 디테일 강화) ====== */
 .hud-left {
   position: fixed;

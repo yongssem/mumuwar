@@ -84,18 +84,26 @@ export class Engine {
   }
 
   _initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true })
+    // Phase 8.15: 캔버스 알파 채널 활성화 — CSS 배경 이미지가 비치도록
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: true,
+      alpha: true,
+    })
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.renderer.setClearColor(0x000000, 0) // 완전 투명
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
   }
 
   _initScene() {
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(COLORS.sky)
-    // Phase 8.7: 다크 톤 — fog 가까이 (15→60) 깊이감 + 윤곽 사라짐 효과
-    this.scene.fog = new THREE.Fog(COLORS.sky, 15, 60)
+    // Phase 8.15: scene.background = null — CSS 배경 이미지가 보이도록
+    this.scene.background = null
+    // 안개는 유지: 멀리 가는 적/게이트가 배경으로 자연스럽게 페이드.
+    //  · 색은 학원가 야경 톤(다크 인디고) 고정 — 단일 bg 이미지에 맞춤
+    this.scene.fog = new THREE.Fog(0x1A1840, 25, 50)
 
     // §10-6
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
@@ -189,10 +197,9 @@ export class Engine {
 
   applyStageTheme() {
     const t = getTheme(this.stage)
-    if (this.scene.background?.set) this.scene.background.set(t.bg)
-    else this.scene.background = new THREE.Color(t.bg)
+    // Phase 8.15: scene.background는 CSS가 처리 — 여기서 갱신하지 않음
+    // fog 색도 단일 bg 이미지에 맞춰 고정 (near/far만 테마 반영)
     if (this.scene.fog) {
-      this.scene.fog.color.set(t.bg)
       this.scene.fog.near = t.fogNear
       this.scene.fog.far = t.fogFar
     }

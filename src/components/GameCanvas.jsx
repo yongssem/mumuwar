@@ -211,7 +211,15 @@ export default function GameCanvas() {
 
   return (
     <div className="fixed inset-0 overflow-hidden">
-      <canvas ref={canvasRef} className="block w-full h-full" />
+      {/* Phase 8.15: 인게임 배경 (학원가 야경) — 캔버스 뒤 레이어 */}
+      <div className="ingame-bg" />
+      <canvas
+        ref={canvasRef}
+        className="relative block w-full h-full"
+        style={{ zIndex: 1 }}
+      />
+      {/* 하단 그라데이션 — 길/캐릭터가 배경에 묻히지 않도록 */}
+      <div className="ingame-bottom-fade" />
 
       {screen === 'play' && (
         <>
