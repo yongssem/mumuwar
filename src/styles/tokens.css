@@ -53,13 +53,16 @@
 }
 
 .modal-content {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
+  /* Phase 8.14.1: 글래스 모피즘 강화 — 배경 야경이 비치도록 투명도 ↑ */
+  background: rgba(15, 14, 26, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: 6px;
   padding: 28px;
-  box-shadow: var(--shadow-modal);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   z-index: 101;
   color: var(--text-primary);
@@ -137,7 +140,7 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   padding: 12px 24px;
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
   box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -147,6 +150,11 @@
   padding: 16px 32px;
   font-size: 16px;
   width: 100%;
+  /* Phase 8.14.1: 글래스 모달 위 강조 — 골드 글로우 확장 */
+  box-shadow:
+    0 0 24px rgba(255, 193, 7, 0.5),
+    0 6px 18px rgba(255, 160, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .btn-primary:hover {
   transform: translateY(-1px);
@@ -175,18 +183,21 @@
 .nickname-label {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   letter-spacing: 0.25em;
   text-align: center;
   margin-bottom: 8px;
+  /* Phase 8.14.1: 글래스 모달 위 가독성 보장 */
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 .nickname-input {
   width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
+  /* Phase 8.14.1: 모달보다 진해서 입력칸 시인성 확보 */
+  background: rgba(15, 14, 26, 0.75);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  border-radius: 6px;
   padding: 12px 14px;
-  color: var(--text-primary);
+  color: #FFF8E1;
   font-family: var(--font-pretendard);
   font-weight: 700;
   font-size: 15px;
@@ -194,6 +205,7 @@
   letter-spacing: 0.05em;
   transition: all 0.2s ease;
   outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .nickname-input::placeholder {
   color: var(--text-muted);
@@ -202,8 +214,8 @@
 }
 .nickname-input:focus {
   border-color: var(--accent-gold);
-  background: rgba(255, 193, 7, 0.06);
-  box-shadow: var(--glow-gold);
+  background: rgba(255, 193, 7, 0.08);
+  box-shadow: 0 0 16px rgba(255, 193, 7, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* ====== 학년 선택 ====== */
@@ -215,9 +227,10 @@
 }
 
 .grade-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
+  /* Phase 8.14.1: 글래스 모달 위에 진하게 — 시인성 확보 */
+  background: rgba(15, 14, 26, 0.7);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  border-radius: 6px;
   padding: 12px 8px;
   color: var(--text-secondary);
   font-family: var(--font-pretendard);
@@ -228,17 +241,19 @@
   align-items: baseline;
   justify-content: center;
   gap: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .grade-btn:hover {
   border-color: var(--border-active);
   color: var(--text-primary);
+  background: rgba(15, 14, 26, 0.55);
   box-shadow: var(--glow-gold);
 }
 .grade-btn.active {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
-  background: rgba(255, 193, 7, 0.1);
-  box-shadow: var(--glow-gold);
+  background: rgba(255, 193, 7, 0.14);
+  box-shadow: 0 0 18px rgba(255, 193, 7, 0.5), inset 0 0 12px rgba(255, 193, 7, 0.15);
 }
 .grade-number {
   font-family: var(--font-mono);

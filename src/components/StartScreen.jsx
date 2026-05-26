@@ -50,19 +50,20 @@ export default function StartScreen({
         {soundOn ? '🔊' : '🔇'}
       </button>
 
-      {/* 메인 모달 — 하단 정렬 (배경 이미지의 타이틀과 안 겹치게) */}
+      {/* 메인 모달 — 하단 정렬 (배경 학생 실루엣 가운데 유지) */}
       <div className="relative z-10 h-full flex flex-col items-center justify-end px-4 pb-8">
-        <div className="modal-content w-full max-w-[420px]" style={{ paddingTop: 22, paddingBottom: 22 }}>
+        <div className="modal-content w-full max-w-[380px]" style={{ paddingTop: 22, paddingBottom: 22 }}>
           <div className="modal-accent-top" />
 
           {highScore > 0 && (
             <p style={{
               fontFamily: 'var(--font-mono)',
               fontSize: 12,
-              color: 'var(--text-muted)',
+              color: 'var(--text-secondary)',
               textAlign: 'center',
               letterSpacing: '0.18em',
               margin: '0 0 14px',
+              textShadow: '0 2px 6px rgba(0,0,0,0.8)',
             }}>
               <span style={{ color: 'var(--accent-gold)' }}>⚡</span> HIGH SCORE · {highScore.toLocaleString()}
             </p>
@@ -97,10 +98,11 @@ export default function StartScreen({
           <div style={{
             fontFamily: 'var(--font-mono)',
             fontSize: 10,
-            color: 'var(--text-muted)',
+            color: 'var(--text-secondary)',
             letterSpacing: '0.25em',
             textAlign: 'center',
             marginBottom: 8,
+            textShadow: '0 2px 6px rgba(0,0,0,0.8)',
           }}>
             SELECT GRADE
           </div>
