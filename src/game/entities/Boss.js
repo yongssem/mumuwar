@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { loadEnemySprite, makeGroundShadow } from '../utils/spriteLoader.js'
 
 // Phase 5 데모 — 1스테이지 끝에 미니 보스로 등장
 // GAME_DESIGN §5-3 최종 보스(학교폭력 우두머리)의 축소판:
@@ -17,33 +18,15 @@ export const BOSS = {
 }
 
 function buildBossMesh() {
+  // Phase 8.8: boss-bully 픽셀아트 스프라이트로 교체
   const group = new THREE.Group()
-
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(BOSS.size, BOSS.size * 1.6, BOSS.size),
-    new THREE.MeshStandardMaterial({ color: BOSS.color }),
-  )
-  body.position.y = BOSS.size * 0.8
-  body.castShadow = true
-  group.add(body)
-
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(BOSS.size * 0.45, 20, 20),
-    new THREE.MeshStandardMaterial({ color: 0x5D4037 }),
-  )
-  head.position.y = BOSS.size * 1.85
-  head.castShadow = true
-  group.add(head)
-
-  const eyeMat = new THREE.MeshStandardMaterial({ color: BOSS.accent, emissive: BOSS.accent, emissiveIntensity: 0.6 })
-  const eyeGeo = new THREE.SphereGeometry(0.12, 10, 10)
-  const eyeL = new THREE.Mesh(eyeGeo, eyeMat)
-  eyeL.position.set(-0.2, BOSS.size * 1.9, BOSS.size * 0.42)
-  group.add(eyeL)
-  const eyeR = new THREE.Mesh(eyeGeo, eyeMat)
-  eyeR.position.set(0.2, BOSS.size * 1.9, BOSS.size * 0.42)
-  group.add(eyeR)
-
+  const shadow = makeGroundShadow(1.4)
+  group.add(shadow)
+  const sprite = loadEnemySprite('boss-bully', 2.5)
+  group.add(sprite)
+  group.userData.sprite = sprite
+  group.userData.restY = sprite.userData.restY
+  group.userData.bobPhase = 0
   return group
 }
 
@@ -95,8 +78,10 @@ export class Boss {
 
   // 보스도 환경 흐름엔 약하게만 영향(좌우 흔들). 자기 z는 유지.
   update(envSpeed, leaderX, onPlayerHit) {
+    const spr = this.mesh.userData.sprite
     if (!this.alive) {
-      this.mesh.rotation.z += 0.04
+      // 스프라이트 회전 + 추락
+      if (spr) spr.material.rotation += 0.06
       this.mesh.position.y -= 0.08
       if (this.mesh.position.y < -3) this.mesh.visible = false
       return
@@ -104,6 +89,11 @@ export class Boss {
 
     this.swayPhase += 0.03
     this.mesh.position.x = Math.sin(this.swayPhase) * 1.5
+    // 위아래 호흡감
+    if (spr) {
+      this.mesh.userData.bobPhase = (this.mesh.userData.bobPhase || 0) + 0.05
+      spr.position.y = this.mesh.userData.restY + Math.sin(this.mesh.userData.bobPhase) * 0.12
+    }
 
     // 공격 쿨다운
     this.attackTimer -= 1
