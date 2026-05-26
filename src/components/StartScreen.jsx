@@ -18,7 +18,7 @@ export default function StartScreen({
 
   return (
     <div className="fixed inset-0 z-30" style={{ background: 'var(--bg-primary)' }}>
-      {/* 배경 이미지 */}
+      {/* Phase 8.11: 한국 학원가 야경 배경 */}
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -28,14 +28,11 @@ export default function StartScreen({
         }}
       />
 
-      {/* 비네팅 + 어두운 그라데이션 */}
+      {/* 다크 그라데이션 오버레이 — 위는 살짝, 아래는 짙게 (모달 가독성 확보) */}
       <div
         style={{
           position: 'absolute', inset: 0,
-          background: `
-            radial-gradient(circle at center, transparent 30%, rgba(15,14,26,0.85) 100%),
-            linear-gradient(180deg, rgba(15,14,26,0.5) 0%, rgba(15,14,26,0.95) 100%)
-          `,
+          background: 'linear-gradient(180deg, rgba(15,14,26,0.4) 0%, rgba(15,14,26,0.85) 100%)',
         }}
       />
 
