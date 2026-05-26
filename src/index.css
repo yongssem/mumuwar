@@ -7,12 +7,17 @@
 html, body, #root {
   height: 100%;
   margin: 0;
+  padding: 0;
   overscroll-behavior: none;
   touch-action: none;
+  overflow: hidden;
 }
 
 body {
   color: #4A4A4A;
   -webkit-user-select: none;
   user-select: none;
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
 }

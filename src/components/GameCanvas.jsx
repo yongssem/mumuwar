@@ -243,13 +243,13 @@ export default function GameCanvas() {
 
           {weaponToast && (
             <div key={weaponToast.id}
-                 className="pointer-events-none fixed top-1/3 left-1/2 -translate-x-1/2 z-20 px-6 py-3 rounded-2xl bg-ddak-accent text-white text-xl font-bold shadow-2xl animate-bounce">
+                 className="pointer-events-none fixed top-1/3 left-1/2 -translate-x-1/2 z-20 px-4 py-2 sm:px-6 sm:py-3 rounded-2xl bg-ddak-accent text-white text-sm sm:text-xl font-bold shadow-2xl animate-bounce max-w-[90vw] text-center">
               ⚡ 무기 업그레이드! {weaponToast.text}
             </div>
           )}
 
           {showHint && (
-            <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 px-5 py-2.5 rounded-full bg-black/60 text-white text-[13px] animate-pulse pointer-events-none">
+            <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/60 text-white text-[11px] sm:text-[13px] animate-pulse pointer-events-none whitespace-nowrap">
               👉 정답 쪽으로 드래그
             </div>
           )}
