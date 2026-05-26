@@ -40,6 +40,7 @@ export default function GameCanvas() {
     const engine = new Engine(canvasRef.current, {
       grade,
       stage,
+      nickname,
       onFirstInput: () => setShowHint(false),
       onCountChange: (n) => setCount(n),
       onScoreChange: (s) => setScore(s),

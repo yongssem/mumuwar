@@ -24,6 +24,7 @@ export class Engine {
   constructor(canvas, {
     grade = 3,
     stage = 1,
+    nickname = '',
     onFirstInput,
     onCountChange,
     onScoreChange,
@@ -37,6 +38,7 @@ export class Engine {
     this.canvas = canvas
     this.grade = grade
     this.stage = stage
+    this.nickname = nickname
     this.stageDef = getStage(stage)
     this.onCountChange = onCountChange
     this.onScoreChange = onScoreChange
@@ -180,7 +182,7 @@ export class Engine {
   }
 
   _initPlayer() {
-    this.player = new Player()
+    this.player = new Player(this.nickname || '용쌤')
     this.scene.add(this.player.group)
   }
 
