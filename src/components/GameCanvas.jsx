@@ -220,7 +220,6 @@ export default function GameCanvas() {
             grade={grade}
             score={score}
             count={count}
-            highScore={progress.highScore || 0}
             correct={answers.correct}
             total={answers.total}
             bossHp={boss.hp}
@@ -229,8 +228,9 @@ export default function GameCanvas() {
             weaponLv={weapon.lv}
             streak={weapon.streak}
             timeRemain={time.remain}
-            timeTotal={time.total}
             stage={stage}
+            paused={paused}
+            onTogglePause={(!result && phase !== PHASE.CLEAR && phase !== PHASE.GAMEOVER) ? togglePause : null}
           />
 
           {weaponToast && (
@@ -246,22 +246,7 @@ export default function GameCanvas() {
             </div>
           )}
 
-          {/* 일시정지 버튼 — 결과창이 떠 있지 않을 때만 노출 */}
-          {!result && phase !== PHASE.CLEAR && phase !== PHASE.GAMEOVER && (
-            <button
-              onClick={togglePause}
-              className="fixed top-5 right-5 w-12 h-12 rounded-full text-xl text-white active:scale-95 z-20"
-              style={{
-                background: 'var(--bg-glass)',
-                border: '1px solid var(--border-default)',
-                backdropFilter: 'blur(8px)',
-              }}
-              aria-label={paused ? '계속하기' : '일시정지'}
-              title="일시정지 (ESC)"
-            >
-              {paused ? '▶' : '⏸'}
-            </button>
-          )}
+          {/* Phase 8.14: 일시정지 버튼은 HUD에 통합됨 (이전 떠다니는 버튼 제거) */}
 
           {paused && !result && (
             <PauseMenu

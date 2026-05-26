@@ -1,14 +1,25 @@
 import { getWeapon, STREAK_TO_UPGRADE, MAX_WEAPON_LV } from '../game/weapons.js'
 import { getStage } from '../game/stages.js'
 
+// MM:SS 형식 (00초 이하는 0:SS)
+function formatTime(sec) {
+  if (sec == null) return '—'
+  const s = Math.max(0, Math.floor(sec))
+  const mm = Math.floor(s / 60)
+  const ss = s % 60
+  return `${mm}:${String(ss).padStart(2, '0')}`
+}
+
 export default function HUD({
   nickname = '',
-  grade, score, count, highScore,
+  grade, score, count,
   correct, total,
   bossHp, bossMaxHp, phase,
   weaponLv = 1, streak = 0,
-  timeRemain = null, timeTotal = null,
+  timeRemain = null,
   stage = 1,
+  paused = false,
+  onTogglePause = null,
 }) {
   const w = getWeapon(weaponLv)
   const rate = total > 0 ? Math.round((correct / total) * 100) : null
@@ -17,79 +28,78 @@ export default function HUD({
 
   return (
     <>
-      {/* 좌상단 패널 */}
-      <div className="hud-panel" style={{
-        position: 'fixed', top: 16, left: 16, minWidth: 240, zIndex: 10,
-      }}>
-        <div className="hud-title">
-          <span>⚔</span>
-          <span>무궁무진 워</span>
-        </div>
-
-        {nickname && (
-          <div className="hud-stat" style={{ marginBottom: 4 }}>
-            <span>🎮</span>
-            <span style={{
-              fontFamily: 'var(--font-pretendard)',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              fontSize: 12,
-            }}>{nickname}</span>
+      {/* 좌상단: 아바타 + stat-pill + 스테이지 뱃지 */}
+      <div className="hud-left">
+        <div className="hud-avatar-row">
+          <div className="hud-player-card" aria-label="플레이어 아바타">
+            <img
+              className="player-avatar-img"
+              src="/assets/sprites/characters/leader-yongssam-celebrate.png"
+              alt=""
+              draggable={false}
+            />
+            <span className="player-level" title={`${grade}학년`}>{grade}</span>
           </div>
-        )}
-
-        <div className="hud-stat">
-          <span style={{ color: 'var(--accent-gold)' }}>⚡</span>
-          <span className="stat-value">{score.toLocaleString()}</span>
-          {highScore > 0 && <span className="stat-best">최고 {highScore.toLocaleString()}</span>}
+          {nickname && <span className="player-name-tag">{nickname}</span>}
         </div>
 
-        <div className="hud-stat">
-          <span>📐</span>
-          <span>{grade}학년 · 정답률 {rate != null ? `${rate}% (${correct}/${total})` : '—'}</span>
-        </div>
-
-        <div className="hud-stat">
-          <span>{w.emoji}</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-            Lv{w.lv} {w.name}
-          </span>
-          {weaponLv < MAX_WEAPON_LV && (
-            <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 4 }}>
-              {streak}/{STREAK_TO_UPGRADE}
+        <div className="hud-stats-row">
+          <div className="stat-pill" title="점수">
+            <span className="pill-icon">⚡</span>
+            <span className="pill-value">{score.toLocaleString()}</span>
+          </div>
+          <div className="stat-pill" title="정답률">
+            <span className="pill-icon">🎯</span>
+            <span className="pill-value">
+              {rate != null ? `${rate}%` : '—'}
             </span>
-          )}
+            {rate != null && (
+              <span className="pill-sub">{correct}/{total}</span>
+            )}
+          </div>
+          <div className="stat-pill" title={`${w.name}`}>
+            <span className="pill-icon">{w.emoji}</span>
+            <span className="pill-value">Lv{w.lv}</span>
+            {weaponLv < MAX_WEAPON_LV && (
+              <span className="pill-sub">{streak}/{STREAK_TO_UPGRADE}</span>
+            )}
+          </div>
         </div>
 
-        <hr className="divider-thin" />
-
-        <div className="stage-tag">
+        <div className="hud-stage-badge">
           <span>STAGE</span>
-          <span style={{ fontFamily: 'var(--font-mono)' }}>{String(stage).padStart(2, '0')}</span>
+          <span className="stage-num">{String(stage).padStart(2, '0')}</span>
           <span>· {stageDef.name}</span>
         </div>
       </div>
 
-      {/* 우상단: 인원 + 시간 */}
-      <div style={{
-        position: 'fixed', top: 16, right: 16, zIndex: 10,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
-      }}>
-        <div className="hud-panel">
-          <div className="crowd-count">
-            <span className="crowd-label">CROWD</span>
-            <span className="crowd-value">{count}</span>
-          </div>
+      {/* 우상단: 인원 / 시간 / 일시정지 */}
+      <div className="hud-right">
+        <div className="hud-counter" title="군중 인원">
+          <span className="counter-icon">👥</span>
+          <span className="counter-value">{count}</span>
         </div>
+
         {timeRemain != null && (
-          <div className={['time-tag', timeUrgent ? 'urgent' : ''].join(' ')}>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, letterSpacing: '0.18em' }}>TIME</span>
-            <span>{timeRemain}</span>
+          <div className={['hud-counter', timeUrgent ? 'urgent' : ''].join(' ')} title="남은 시간">
+            <span className="counter-icon">⏱️</span>
+            <span className="counter-value">{formatTime(timeRemain)}</span>
           </div>
+        )}
+
+        {onTogglePause && (
+          <button
+            className="hud-pause-btn"
+            onClick={onTogglePause}
+            aria-label={paused ? '계속하기' : '일시정지'}
+            title="일시정지 (ESC)"
+          >
+            {paused ? '▶' : '❚❚'}
+          </button>
         )}
       </div>
 
-      {/* 보스 체력바 */}
+      {/* 보스 체력바 — 그대로 유지 */}
       {phase === 'BOSS' && bossHp != null && (
         <div className="boss-hp-wrap" style={{
           position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',

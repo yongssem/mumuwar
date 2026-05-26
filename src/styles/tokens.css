@@ -466,6 +466,198 @@
   color: var(--color-danger);
   animation: dangerPulse 0.8s ease-in-out infinite;
 }
+/* ====== Phase 8.14 — 라스트 워 풍 HUD (카드 / 알약 / 카운터) ====== */
+.hud-left {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.hud-right {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+/* 아바타 + 레벨 배지 + 닉네임 */
+.hud-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hud-player-card {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #C2185B 0%, #4A148C 100%);
+  border: 3px solid var(--accent-gold);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45), 0 0 16px rgba(255,193,7,0.3);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.player-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+.player-level {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: var(--accent-gold);
+  color: #1A0E00;
+  font-weight: 900;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #0F0E1A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+.player-name-tag {
+  font-family: var(--font-pretendard);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text-primary);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.4);
+  letter-spacing: 0.02em;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 자원 알약 줄 */
+.hud-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 280px;
+}
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(26, 24, 48, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 16px;
+  padding: 5px 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+.stat-pill .pill-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+.stat-pill .pill-value {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-gold);
+  line-height: 1;
+}
+.stat-pill .pill-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* 스테이지 뱃지 */
+.hud-stage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%);
+  color: #FFF8E1;
+  font-family: var(--font-cinzel);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.12em;
+  box-shadow: 0 3px 10px rgba(123, 31, 162, 0.55);
+  border: 1px solid rgba(255, 213, 79, 0.35);
+}
+.hud-stage-badge .stage-num {
+  font-family: var(--font-mono);
+  color: var(--text-gold);
+  font-size: 12px;
+}
+
+/* 우측 카운터 */
+.hud-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(26,24,48,0.92) 0%, rgba(15,14,26,0.92) 100%);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: 20px;
+  padding: 7px 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  min-width: 96px;
+  justify-content: flex-end;
+}
+.hud-counter .counter-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.5));
+  line-height: 1;
+}
+.hud-counter .counter-value {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text-gold);
+  text-shadow: 0 0 8px rgba(255, 213, 79, 0.4);
+  min-width: 40px;
+  text-align: right;
+  line-height: 1;
+}
+.hud-counter.urgent {
+  border-color: var(--color-danger);
+  animation: dangerPulse 0.8s ease-in-out infinite;
+}
+.hud-counter.urgent .counter-value {
+  color: var(--color-danger);
+  text-shadow: 0 0 8px rgba(229, 57, 53, 0.55);
+}
+
+/* 일시정지 버튼 (HUD 통합) */
+.hud-pause-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFC107 0%, #FFA000 100%);
+  border: 3px solid #1A0E00;
+  color: #1A0E00;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255,193,7,0.4), inset 0 2px 4px rgba(255,255,255,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease;
+}
+.hud-pause-btn:active { transform: scale(0.94); }
+
 .boss-hp-wrap {
   font-family: var(--font-pretendard);
 }
