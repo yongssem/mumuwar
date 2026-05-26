@@ -59,18 +59,18 @@ export default function StageSelect({ grade, progress, onPick, onBack }) {
 
       <div className="relative z-10 h-full flex flex-col">
         <div className="stage-select-header">
-          <button onClick={onBack} className="btn-secondary" style={{ padding: '8px 14px', fontSize: 12 }}>
-            ◀ 학년 변경
+          <button onClick={onBack} className="btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }}>
+            ◀ 변경
           </button>
           <div className="stage-select-title">CHAPTER SELECT</div>
           <div className="accuracy-display">
             {grade}학년
-            {accRate != null && <> · 정답률 <strong>{accRate}%</strong></>}
+            {accRate != null && <> · <strong>{accRate}%</strong></>}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <div className="max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
             {stageList.map((s) => (
               <StageCard
                 key={s}

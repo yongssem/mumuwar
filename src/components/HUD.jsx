@@ -102,8 +102,8 @@ export default function HUD({
       {/* 보스 체력바 — 그대로 유지 */}
       {phase === 'BOSS' && bossHp != null && (
         <div className="boss-hp-wrap" style={{
-          position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 10, width: 320, maxWidth: '80vw',
+          position: 'fixed', top: 10, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10, width: 280, maxWidth: '60vw',
         }}>
           <div className="boss-hp-label">👊 학교폭력 우두머리</div>
           <div className="boss-hp-bar">

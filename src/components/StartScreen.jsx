@@ -51,8 +51,8 @@ export default function StartScreen({
       </button>
 
       {/* 메인 모달 — 하단 정렬 (배경 학생 실루엣 가운데 유지) */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-end px-4 pb-8">
-        <div className="modal-content w-full max-w-[380px]" style={{ paddingTop: 22, paddingBottom: 22 }}>
+      <div className="relative z-10 h-full flex flex-col items-center justify-end px-3 sm:px-4 pb-6 sm:pb-8">
+        <div className="modal-content w-full max-w-[380px]" style={{ paddingTop: 18, paddingBottom: 18 }}>
           <div className="modal-accent-top" />
 
           {highScore > 0 && (

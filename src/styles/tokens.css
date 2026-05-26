@@ -879,3 +879,323 @@
   0%, 100% { box-shadow: 0 0 8px rgba(229, 57, 53, 0.5); }
   50%      { box-shadow: 0 0 16px rgba(229, 57, 53, 0.9); }
 }
+
+/* ====== 모바일 반응형 ====== */
+@media (max-width: 480px) {
+  /* HUD 위치 — 간격 축소 */
+  .hud-left {
+    top: 8px;
+    left: 8px;
+  }
+  .hud-right {
+    top: 8px;
+    right: 8px;
+  }
+
+  /* 아바타 — 48px로 축소 */
+  .player-card-wrapper {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 6px;
+  }
+  .player-avatar {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+  }
+  .player-level-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    border-width: 2px;
+    bottom: -2px;
+    right: -2px;
+  }
+  .player-name-badge {
+    top: 14px;
+    left: 56px;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    max-width: 120px;
+  }
+
+  /* 자원 카드 — 폭 축소 + 컴팩트화 */
+  .resource-card {
+    width: 155px;
+    min-height: 36px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+  .res-icon {
+    font-size: 16px;
+    width: 20px;
+  }
+  .res-label {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+  .res-value {
+    font-size: 14px;
+  }
+  .res-sub {
+    font-size: 9px;
+    margin-left: 4px;
+  }
+
+  /* 스테이지 배지 — 컴팩트 */
+  .stage-badge-large {
+    padding: 6px 12px;
+    border-radius: 8px;
+    gap: 6px;
+    min-height: 34px;
+  }
+  .stage-badge-large .badge-tag {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  .stage-badge-large .badge-num {
+    font-size: 16px;
+  }
+  .stage-badge-large .badge-name {
+    font-size: 11px;
+    padding-left: 8px;
+  }
+
+  /* 우측 카운터 — 컴팩트 */
+  .counter-card {
+    min-width: 80px;
+    padding: 6px 12px;
+    margin-bottom: 6px;
+    gap: 6px;
+    border-radius: 16px;
+  }
+  .counter-card .counter-icon {
+    font-size: 16px;
+  }
+  .counter-card .counter-value {
+    font-size: 18px;
+    min-width: 36px;
+  }
+
+  /* 일시정지 버튼 — 40px로 축소 */
+  .pause-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+    border-width: 3px;
+    margin-top: 4px;
+  }
+
+  /* 보스 HP바 */
+  .boss-hp-label {
+    font-size: 10px;
+  }
+
+  /* 모달 — 패딩 축소 */
+  .modal-content {
+    padding: 20px 16px;
+  }
+
+  /* 결과 화면 — 컴팩트 */
+  .result-screen {
+    padding: 24px 20px 20px;
+  }
+  .result-title {
+    font-size: 32px;
+  }
+  .result-stars {
+    font-size: 32px;
+    gap: 6px;
+    margin: 16px 0 14px;
+  }
+  .result-stats {
+    margin: 14px 0;
+    padding: 10px 0;
+  }
+  .result-stat .value {
+    font-size: 18px;
+  }
+  .result-stat .label {
+    font-size: 9px;
+  }
+  .result-buttons {
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  /* 스테이지 선택 헤더 */
+  .stage-select-header {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .stage-select-title {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
+  .accuracy-display {
+    font-size: 11px;
+  }
+  .accuracy-display strong {
+    font-size: 13px;
+  }
+
+  /* 스테이지 카드 — 간격 최적화 */
+  .stage-card {
+    padding: 10px 8px;
+  }
+  .stage-name {
+    font-size: 10px;
+  }
+  .stage-stars {
+    font-size: 14px;
+  }
+
+  /* 히어로 타이틀 — 모바일 축소 */
+  .hero-title {
+    font-size: 32px;
+  }
+  .hero-subtitle {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+  }
+
+  /* 학년 선택 — 컴팩트 */
+  .grade-btn {
+    padding: 10px 6px;
+  }
+  .grade-number {
+    font-size: 18px;
+  }
+  .grade-label {
+    font-size: 10px;
+  }
+
+  /* 닉네임 입력 */
+  .nickname-input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  /* 버튼 — 패딩 축소 */
+  .btn-primary-large {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+}
+
+/* ====== 초소형 모바일 (360px 이하) ====== */
+@media (max-width: 360px) {
+  .hud-left {
+    top: 6px;
+    left: 6px;
+  }
+  .hud-right {
+    top: 6px;
+    right: 6px;
+  }
+
+  .player-card-wrapper {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
+  }
+  .player-avatar {
+    width: 40px;
+    height: 40px;
+    border-width: 2px;
+  }
+  .player-level-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
+    border-width: 2px;
+  }
+  .player-name-badge {
+    display: none;
+  }
+
+  .resource-card {
+    width: 130px;
+    min-height: 30px;
+    padding: 4px 8px;
+    margin-bottom: 3px;
+    gap: 4px;
+    border-radius: 6px;
+  }
+  .res-icon {
+    font-size: 13px;
+    width: 16px;
+  }
+  .res-label {
+    font-size: 7px;
+  }
+  .res-value {
+    font-size: 12px;
+  }
+  .res-sub {
+    font-size: 8px;
+  }
+
+  .stage-badge-large {
+    padding: 4px 8px;
+    gap: 4px;
+    min-height: 28px;
+  }
+  .stage-badge-large .badge-tag {
+    font-size: 8px;
+  }
+  .stage-badge-large .badge-num {
+    font-size: 14px;
+  }
+  .stage-badge-large .badge-name {
+    font-size: 10px;
+    padding-left: 6px;
+  }
+
+  .counter-card {
+    min-width: 68px;
+    padding: 4px 10px;
+    margin-bottom: 4px;
+    gap: 4px;
+  }
+  .counter-card .counter-icon {
+    font-size: 14px;
+  }
+  .counter-card .counter-value {
+    font-size: 15px;
+    min-width: 30px;
+  }
+
+  .pause-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+    border-width: 2px;
+  }
+
+  .result-title {
+    font-size: 26px;
+  }
+  .result-stars {
+    font-size: 26px;
+  }
+  .result-stat .value {
+    font-size: 16px;
+  }
+
+  .stage-select-header {
+    padding: 8px 10px;
+  }
+  .stage-select-title {
+    font-size: 11px;
+  }
+}
