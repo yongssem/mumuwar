@@ -94,6 +94,18 @@ export function loadCharacterSprite(name, scale = 1.0) {
 }
 
 /**
+ * 픽셀 텍스처를 단독으로 반환 (InstancedMesh 용도).
+ * 텍스처는 캐시됨. 로드 완료 후 onReady 콜백.
+ * @param {string} subdir 'characters' | 'enemies'
+ * @param {string} name 확장자 제외
+ * @param {() => void} [onReady]
+ * @returns {THREE.Texture}
+ */
+export function loadPixelTexture(subdir, name, onReady) {
+  return loadPixelTextureWithFallback(subdir, name, onReady)
+}
+
+/**
  * 발 밑에 깔리는 둥근 그림자 메쉬.
  * @param {number} radius
  */

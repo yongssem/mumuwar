@@ -55,7 +55,7 @@ function makeAnswerTexture(text) {
 }
 
 function makeProblemTexture(question) {
-  // Phase 8.5: 다크 글래스 + 골드 테두리 (Hades 톤)
+  // Phase 8.12: 다크 글래스 + 골드 테두리 — 글로우/텍스트 가독성 강화
   const c = document.createElement('canvas')
   c.width = 1024
   c.height = 256
@@ -70,13 +70,13 @@ function makeProblemTexture(question) {
   ctx.strokeStyle = 'rgba(255,193,7,0.4)'
   ctx.lineWidth = 2
   ctx.strokeRect(14, 14, 996, 228)
-  // 골드 텍스트
+  // 골드 텍스트 — 더 밝은 톤 + 글로우 확장
   ctx.font = 'bold 120px "JetBrains Mono", "Pretendard", monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.shadowColor = 'rgba(255,214,0,0.7)'
-  ctx.shadowBlur = 20
-  ctx.fillStyle = '#FFD600'
+  ctx.shadowColor = 'rgba(255,224,102,0.85)'
+  ctx.shadowBlur = 30
+  ctx.fillStyle = '#FFE066'
   ctx.fillText(question, 512, 128)
   ctx.shadowBlur = 0
   const tex = new THREE.CanvasTexture(c)
@@ -130,7 +130,7 @@ function buildAnswerGate(answerText, maxHp, isCorrect) {
   const group = new THREE.Group()
 
   // §3-5: 정답/오답 둘 다 같은 색
-  // Phase 8.5: 다크 글래스 톤 + emissive
+  // Phase 8.12: 다크 글래스 톤 + 강화된 emissive (어두운 씬에서 또렷이 빛남)
   const wallMat = new THREE.MeshStandardMaterial({
     color: 0x4A90E2,
     transparent: true,
@@ -138,7 +138,7 @@ function buildAnswerGate(answerText, maxHp, isCorrect) {
     side: THREE.DoubleSide,
     depthWrite: false,
     emissive: 0x2196F3,
-    emissiveIntensity: 0.4,
+    emissiveIntensity: 0.8,
   })
   const wall = new THREE.Mesh(
     new THREE.BoxGeometry(GATE_WIDTH, GATE_HEIGHT, GATE_THICKNESS),

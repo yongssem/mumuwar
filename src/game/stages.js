@@ -1,13 +1,14 @@
 // GAME_DESIGN v2.3 §7-1 + §10-4 — 10스테이지 + 테마
 // Phase 8.0-A에 맞춰 적 수 대폭 증가 (떼거리 학살)
 
-// Phase 8.7: Hades/NecroDancer 다크 톤 통일 — 모든 테마 다크 인디고 베이스
+// Phase 8.12: Hades 다크 톤 + 가독성 — bg/road 보라 살리고, 안개는 가까이 시작
+// 게이트/적이 25유닛 안에 들어오면 또렷이 보이고, 50유닛 너머는 분위기로 사라짐.
 export const THEMES = {
-  ACADEMY: { bg: 0x1A1830, road: 0x2A2640, grass: 0x0F0E1A, fogNear: 15, fogFar: 60 },
-  SUNSET:  { bg: 0x2A1830, road: 0x3A1F2E, grass: 0x150A1A, fogNear: 15, fogFar: 58 },
-  CYBER:   { bg: 0x1A0F3A, road: 0x2A1F4D, grass: 0x0A0820, fogNear: 14, fogFar: 55 },
-  ARCADE:  { bg: 0x0F1538, road: 0x202A45, grass: 0x05081A, fogNear: 14, fogFar: 55 },
-  ROOFTOP: { bg: 0x080820, road: 0x1A2030, grass: 0x000010, fogNear: 12, fogFar: 50 },
+  ACADEMY: { bg: 0x1A1840, road: 0x3A3050, grass: 0x0F0E1A, fogNear: 25, fogFar: 50 },
+  SUNSET:  { bg: 0x2A1838, road: 0x40253A, grass: 0x150A1A, fogNear: 25, fogFar: 50 },
+  CYBER:   { bg: 0x1A0F48, road: 0x352560, grass: 0x0A0820, fogNear: 25, fogFar: 50 },
+  ARCADE:  { bg: 0x121C48, road: 0x28365A, grass: 0x05081A, fogNear: 25, fogFar: 50 },
+  ROOFTOP: { bg: 0x0C0C30, road: 0x222840, grass: 0x000010, fogNear: 22, fogFar: 48 },
 }
 
 // v2.3 — duration 추가 (초). enemies는 큐로 무한 순환.

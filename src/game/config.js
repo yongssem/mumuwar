@@ -31,17 +31,17 @@ export const GATE_BASE_REWARD = 20
 export const GATE_BASE_PENALTY = 10
 export const GATE_COLOR = '#4A90E2'           // 좌/우 동일 (§3-5)
 
-// Phase 8.7: Hades/NecroDancer 다크 톤 통일
+// Phase 8.12: Hades 다크 톤 + 가독성 보정 (살짝 보라 살림)
 export const COLORS = {
-  sky: 0x1A1830,       // 다크 인디고
-  road: 0x2A2640,      // 검보라
-  roadEmissive: 0x1A1638,
+  sky: 0x1A1840,       // 다크 인디고-보라
+  road: 0x3A3050,      // 살짝 밝은 검보라 (게이트/적 윤곽 보임)
+  roadEmissive: 0x2A2048,
   grass: 0x0F0E1A,     // 거의 검정
   laneDash: 0xFFC107,  // 골드 액센트
-  body: 0x4A90E2,      // 리더 본체 (모자 식별용으로 유지)
-  skin: 0xE0BC8C,      // 채도 낮춤
-  pants: 0x1a1530,     // 다크 인디고
-  trunk: 0x4A148C,     // 다크 퍼플
-  leaf: 0x1A237E,      // 다크 인디고
-  leafEmissive: 0x00BCD4, // 시안 글로우
+  body: 0x4A90E2,
+  skin: 0xE0BC8C,
+  pants: 0x1a1530,
+  trunk: 0x4A148C,
+  leaf: 0x1A237E,
+  leafEmissive: 0x00BCD4,
 }

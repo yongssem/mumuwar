@@ -104,8 +104,8 @@ export class Engine {
   }
 
   _initLights() {
-    // Phase 8.7: 다크 톤 유지하면서 캐릭터 가독성 확보
-    this.scene.add(new THREE.AmbientLight(0xC5CAE9, 0.75))
+    // Phase 8.12: 어둡되 캐릭터/게이트 가독성 강화 (0.75 → 0.95)
+    this.scene.add(new THREE.AmbientLight(0xC5CAE9, 0.95))
     const sun = new THREE.DirectionalLight(0xE8EAF6, 1.05)
     sun.position.set(10, 20, 10)
     sun.castShadow = true
@@ -177,7 +177,8 @@ export class Engine {
   }
 
   _initCrowd() {
-    this.crowd = new Crowd()
+    // Phase 8.12: 친구 빌보드 픽셀아트 → camera 필요
+    this.crowd = new Crowd(this.camera)
     this.scene.add(this.crowd.group)
   }
 
