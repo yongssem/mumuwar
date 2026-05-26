@@ -75,7 +75,10 @@ export class Engine {
     this.gates = new GateManager(this.scene, { grade, stage })
     this.bursts = new BurstPool(this.scene)
     this.bullets = new BulletPool(this.scene)
-    this.enemies = new EnemyManager(this.scene, { spawnList: this.stageDef.enemies })
+    this.enemies = new EnemyManager(this.scene, {
+      spawnList: this.stageDef.enemies,
+      difficulty: this.stageDef.difficulty,
+    })
     this.floaters = new FloatingScorePool(this.scene)
 
     this._onResize = this._onResize.bind(this)
@@ -361,11 +364,15 @@ export class Engine {
       const result = this.enemies.checkBulletHit(b)
       if (result?.killed) {
         const enemy = result.enemy
-        this.score += enemy.type.score
-        // Phase 8.5: 파편 12개 + 흰 섬광
-        this.bursts.spawn(enemy.mesh.position.clone(), enemy.type.color, 1.6, 12)
+        // Phase 9.0: enemy.score 는 변종 배수 반영된 최종값
+        const earned = enemy.score ?? enemy.type.score
+        this.score += earned
+        // 변종일수록 더 화려한 폭발 (basic 1.6, elite 2.0, boss 2.6)
+        const burstSize = enemy.variant === 'boss' ? 2.6 : enemy.variant === 'elite' ? 2.0 : 1.6
+        const burstParticles = enemy.variant === 'boss' ? 22 : enemy.variant === 'elite' ? 16 : 12
+        this.bursts.spawn(enemy.mesh.position.clone(), enemy.type.color, burstSize, burstParticles)
         this.bursts.spawnFlash(enemy.mesh.position.clone(), 1.4)
-        this.floaters.spawn(enemy.mesh.position.clone(), `+${enemy.type.score}`, '#FFD700', 2)
+        this.floaters.spawn(enemy.mesh.position.clone(), `+${earned}`, '#FFD700', 2)
         playSfx('kill')
         this.onScoreChange?.(this.score)
         return true

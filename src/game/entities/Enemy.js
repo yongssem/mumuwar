@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { ROAD_WIDTH } from '../config.js'
 import { loadEnemySprite, makeGroundShadow } from '../utils/spriteLoader.js'
+import { DEFAULT_DIFFICULTY } from '../stages.js'
 
 // GAME_DESIGN v2.1 §10-3-2 — 적 종류별 행동/속도/충돌 데미지
 export const ENEMY_TYPES = {
@@ -18,35 +19,85 @@ const ENEMY_SPRITES = {
   ZOMBIE:   { file: 'phone-zombie',  scale: 1.0, shadow: 0.55 },
 }
 
+// Phase 9.0 — 변종 시스템
+//  · basic: 기본 (대다수)
+//  · elite: 빨간 틴트 + 빨간 오라 PointLight + HP 2.5×, 속도 1.2×, 점수 2×
+//  · boss:  보라 틴트 + 보라 오라 + HP 5×, 속도 1.4×, 점수 4×
+// 점수 배수는 HP 배수보다 살짝 낮게 설정 (어렵지만 보상도 따라옴).
+export const ENEMY_VARIANTS = {
+  basic: {
+    tint: 0xFFFFFF,
+    aura: null,
+    auraIntensity: 0,
+    hpMul: 1.0,
+    scale: 1.0,
+    speedMul: 1.0,
+    scoreMul: 1.0,
+  },
+  elite: {
+    tint: 0xFFAAAA,
+    aura: 0xFF1744,
+    auraIntensity: 1.5,
+    hpMul: 2.5,
+    scale: 1.1,
+    speedMul: 1.2,
+    scoreMul: 2.0,
+  },
+  boss: {
+    tint: 0xAA88FF,
+    aura: 0x7B1FA2,
+    auraIntensity: 2.0,
+    hpMul: 5.0,
+    scale: 1.3,
+    speedMul: 1.4,
+    scoreMul: 4.0,
+  },
+}
+
 export const ENEMY_HIT_RADIUS = 0.9   // v2.3: 1.5배 크기 보정
 const CROWD_COLLIDE_Z = -0.5     // 적이 이 z 이상 들어오면 군단과 충돌
 const CROWD_COLLIDE_X = 2.5      // v2.3: 적 크기 1.5배 보정
 
 const DYING_FRAMES = 12
-const WAVE_MIN = 3
-const WAVE_MAX = 5
 
-// 적 1개 그룹 생성: 그림자 + 스프라이트
-function buildEnemyVisual(typeKey) {
+// 적 1개 그룹 생성: 그림자 + 스프라이트 (+ 변종 오라)
+function buildEnemyVisual(typeKey, variantCfg) {
   const cfg = ENEMY_SPRITES[typeKey]
+  const v = variantCfg
   const group = new THREE.Group()
-  const shadow = makeGroundShadow(cfg.shadow)
+
+  const shadow = makeGroundShadow(cfg.shadow * v.scale)
   group.add(shadow)
-  const sprite = loadEnemySprite(cfg.file, cfg.scale)
+
+  const sprite = loadEnemySprite(cfg.file, cfg.scale * v.scale)
+  // 변종 컬러 틴트 (multiplicative blending with texture)
+  if (v.tint !== 0xFFFFFF) sprite.material.color.setHex(v.tint)
   group.add(sprite)
-  // 흔들림 기준 저장
+
   group.userData.sprite = sprite
   group.userData.restY = sprite.userData.restY
   group.userData.bobPhase = Math.random() * Math.PI * 2
+
+  // 변종 오라 — 도로를 비추는 PointLight (sprite는 unlit이라 영향 없음)
+  if (v.aura) {
+    const aura = new THREE.PointLight(v.aura, v.auraIntensity, 3, 1.5)
+    aura.position.set(0, 0.6, 0)
+    group.add(aura)
+    group.userData.aura = aura
+    group.userData.auraBase = v.auraIntensity
+  }
+
   return group
 }
 
 export class EnemyManager {
-  constructor(scene, { spawnList = [{ type: 'HOMEWORK', count: 5 }], spawnInterval = 60 } = {}) {
+  constructor(scene, { spawnList = [{ type: 'HOMEWORK', count: 5 }], difficulty } = {}) {
     this.scene = scene
     this.enemies = []
+    this.difficulty = { ...DEFAULT_DIFFICULTY, ...(difficulty || {}) }
+    // spawnInterval: 초 → 프레임 (60fps 기준)
+    this.spawnInterval = Math.max(15, Math.round(this.difficulty.spawnInterval * 60))
     this.spawnTimer = 30
-    this.spawnInterval = spawnInterval     // v2.3: 1초 (60 frames)
     // 큐는 무한 순환 — duration 동안 끊임없이 등장
     this.queue = spawnList.flatMap((w) => Array(w.count).fill(w.type))
     this.spawned = 0
@@ -56,35 +107,58 @@ export class EnemyManager {
 
   stopSpawning() { this._stopped = true }
 
-  // 단일 적 spawn (옵션으로 X/Z 오프셋)
+  // 단일 적 spawn (옵션으로 X/Z 오프셋 + variant)
   spawn(opts = {}) {
     if (this._stopped) return
     const typeKey = this.queue[this.spawned % this.queue.length]
     const t = ENEMY_TYPES[typeKey]
-    const mesh = buildEnemyVisual(typeKey)
+    const variant = opts.variant || 'basic'
+    const v = ENEMY_VARIANTS[variant] || ENEMY_VARIANTS.basic
+
+    const mesh = buildEnemyVisual(typeKey, v)
     const baseX = (Math.random() - 0.5) * (ROAD_WIDTH - 2.5)
     const x = Math.max(-3.5, Math.min(3.5, baseX + (opts.xOffset || 0)))
     const z = -38 + (opts.zOffset || 0)
     mesh.position.set(x, 0, z)
     this.scene.add(mesh)
+
+    // 스탯 = 베이스 × 변종 × 스테이지
+    const stageHpMul = this.difficulty.hpMul
+    const stageSpeedMul = this.difficulty.speedMul
+    const hp = Math.max(1, Math.round(t.hp * v.hpMul * stageHpMul))
+    const speedMul = v.speedMul * stageSpeedMul
+    const score = Math.round(t.score * v.scoreMul)
+
     this.enemies.push({
       typeKey, type: t, mesh,
-      hp: t.hp, x, z,
+      variant,
+      hp, speedMul, score,
+      x, z,
       dead: false, dying: false, dyingTimer: 0,
     })
     this.spawned += 1
   }
 
-  // 떼거리 wave (3~5마리, 좌우+앞뒤 분산)
-  spawnWave() {
+  // Phase 9.0 — difficulty.spawnCount 만큼 동시 스폰, 각자 variant 롤
+  spawnGroup() {
     if (this._stopped) return
-    const count = WAVE_MIN + Math.floor(Math.random() * (WAVE_MAX - WAVE_MIN + 1))
+    const count = Math.max(1, this.difficulty.spawnCount)
     for (let i = 0; i < count; i++) {
+      const variant = this._rollVariant()
       this.spawn({
-        xOffset: (i - (count - 1) / 2) * 1.2,
-        zOffset: -i * 2,
+        xOffset: (i - (count - 1) / 2) * 1.5,
+        zOffset: -i * 1.5,
+        variant,
       })
     }
+  }
+
+  _rollVariant() {
+    const r = Math.random()
+    const { bossRate, eliteRate } = this.difficulty
+    if (bossRate && r < bossRate) return 'boss'
+    if (r < eliteRate) return 'elite'
+    return 'basic'
   }
 
   // 게이트 통과 직후 외부 트리거 (delay 프레임 후 강제 웨이브)
@@ -102,8 +176,10 @@ export class EnemyManager {
     this.spawnTimer += 1
     if (this.spawnTimer >= this.spawnInterval) {
       this.spawnTimer = 0
-      this.spawnWave()
+      this.spawnGroup()
     }
+
+    const auraTime = performance.now() * 0.005
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]
@@ -111,12 +187,15 @@ export class EnemyManager {
       if (e.dying) {
         e.dyingTimer += 1
         const t = e.dyingTimer / DYING_FRAMES
-        // 위로 튀어오르며 회전(스프라이트는 material.rotation으로) + 축소
         e.mesh.position.y = t * 1.5
         const spr = e.mesh.userData.sprite
         if (spr) spr.material.rotation += 0.18
         const s = Math.max(0.01, 1 - t)
         e.mesh.scale.setScalar(s)
+        // 사망 중에도 오라 페이드
+        if (e.mesh.userData.aura) {
+          e.mesh.userData.aura.intensity = e.mesh.userData.auraBase * (1 - t)
+        }
         if (e.dyingTimer >= DYING_FRAMES) {
           this._dispose(e.mesh)
           this.enemies.splice(i, 1)
@@ -124,17 +203,21 @@ export class EnemyManager {
         continue
       }
 
-      e.z += envSpeed + e.type.speed
+      e.z += envSpeed + e.type.speed * (e.speedMul || 1)
       e.mesh.position.z = e.z
 
-      // Phase 8.8: 위아래 살짝 흔들기
+      // 위아래 흔들기 + 변종 오라 펄스
       const spr = e.mesh.userData.sprite
       if (spr) {
         e.mesh.userData.bobPhase += 0.08
         spr.position.y = e.mesh.userData.restY + Math.sin(e.mesh.userData.bobPhase) * 0.08
       }
+      if (e.mesh.userData.aura) {
+        const pulse = 1 + Math.sin(auraTime + e.mesh.userData.bobPhase) * 0.4
+        e.mesh.userData.aura.intensity = e.mesh.userData.auraBase * pulse
+      }
 
-      // 군단 충돌 (적이 군단 영역 진입 + leaderX와 X축 근접) — Phase 8.6: 리더 z 따라 라인 이동
+      // 군단 충돌 (적이 군단 영역 진입 + leaderX와 X축 근접)
       if (!e.dead && e.z >= CROWD_COLLIDE_Z + leaderZ && Math.abs(e.x - leaderX) <= CROWD_COLLIDE_X) {
         e.dead = true
         e.dying = true
@@ -184,7 +267,6 @@ export class EnemyManager {
   }
 
   finished() {
-    // stopSpawning 호출됐고 화면에 살아있는 적 0
     const alive = this.enemies.filter((e) => !e.dying).length
     return this._stopped && alive === 0
   }
