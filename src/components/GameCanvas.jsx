@@ -7,6 +7,7 @@ import Clear from './Clear.jsx'
 import GameOver from './GameOver.jsx'
 import StartScreen from './StartScreen.jsx'
 import StageSelect from './StageSelect.jsx'
+import PauseMenu from './PauseMenu.jsx'
 import { getStage } from '../game/stages.js'
 import { getWeapon } from '../game/weapons.js'
 
@@ -32,6 +33,7 @@ export default function GameCanvas() {
   const [weaponToast, setWeaponToast] = useState(null)
   const [time, setTime] = useState({ remain: null, total: null })
   const [result, setResult] = useState(null)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     if (screen !== 'play') return
@@ -108,6 +110,7 @@ export default function GameCanvas() {
     setWeaponToast(null)
     setTime({ remain: null, total: null })
     setResult(null)
+    setPaused(false)
     setRunKey((k) => k + 1)
   }, [])
 
@@ -140,6 +143,43 @@ export default function GameCanvas() {
   const backToStart = useCallback(() => {
     setScreen('start')
   }, [])
+
+  const togglePause = useCallback(() => {
+    setPaused((prev) => !prev)
+  }, [])
+
+  const resumeGame = useCallback(() => setPaused(false), [])
+
+  const retryFromPause = useCallback(() => {
+    setPaused(false)
+    resetState()
+  }, [resetState])
+
+  const homeFromPause = useCallback(() => {
+    setPaused(false)
+    setScreen('stageSelect')
+    setResult(null)
+    setProgress(loadProgress())
+  }, [])
+
+  // Engine에 paused 상태 반영
+  useEffect(() => {
+    engineRef.current?.setPaused(paused)
+  }, [paused])
+
+  // ESC 키 — 게임 중에만 토글 (결과창이 떠 있을 때는 무시)
+  useEffect(() => {
+    if (screen !== 'play') return
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      if (result) return // 결과 표시 중엔 ESC 무시
+      if (phase === PHASE.CLEAR || phase === PHASE.GAMEOVER) return
+      e.preventDefault()
+      setPaused((prev) => !prev)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [screen, result, phase])
 
   useEffect(() => {
     if (!weaponToast) return
@@ -203,6 +243,31 @@ export default function GameCanvas() {
             <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 px-5 py-2.5 rounded-full bg-black/60 text-white text-[13px] animate-pulse pointer-events-none">
               👉 정답 쪽으로 드래그
             </div>
+          )}
+
+          {/* 일시정지 버튼 — 결과창이 떠 있지 않을 때만 노출 */}
+          {!result && phase !== PHASE.CLEAR && phase !== PHASE.GAMEOVER && (
+            <button
+              onClick={togglePause}
+              className="fixed top-5 right-5 w-12 h-12 rounded-full text-xl text-white active:scale-95 z-20"
+              style={{
+                background: 'var(--bg-glass)',
+                border: '1px solid var(--border-default)',
+                backdropFilter: 'blur(8px)',
+              }}
+              aria-label={paused ? '계속하기' : '일시정지'}
+              title="일시정지 (ESC)"
+            >
+              {paused ? '▶' : '⏸'}
+            </button>
+          )}
+
+          {paused && !result && (
+            <PauseMenu
+              onResume={resumeGame}
+              onRetry={retryFromPause}
+              onHome={homeFromPause}
+            />
           )}
 
           {result?.cleared && (

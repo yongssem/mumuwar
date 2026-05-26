@@ -60,6 +60,7 @@ export class Engine {
     this.dashes = []
     this.trees = []
     this.running = false
+    this.paused = false
 
     this._initRenderer()
     this._initScene()
@@ -121,16 +122,27 @@ export class Engine {
     const cyanFill = new THREE.PointLight(0x00BCD4, 0.5, 30)
     cyanFill.position.set(0, 8, -10)
     this.scene.add(cyanFill)
+
+    // Phase 8.8: 길 위쪽으로 골드 톤 "가로등" 라인 — 도로만 밝히고
+    // 풀밭/숲은 다크 톤 유지. 멀리서 오는 적의 윤곽이 잡힘.
+    this.pathLights = []
+    for (let z = 0; z >= -90; z -= 18) {
+      const light = new THREE.PointLight(0xFFD180, 0.85, 16, 1.6)
+      light.position.set(0, 6, z)
+      this.scene.add(light)
+      this.pathLights.push(light)
+    }
   }
 
   _initRoad() {
+    // Phase 8.8: 도로 자체 발광 강화 — 멀리까지 길이 보이도록
     this.road = new THREE.Mesh(
       new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
       new THREE.MeshStandardMaterial({
         color: COLORS.road,
         emissive: COLORS.roadEmissive,
-        emissiveIntensity: 0.15,
-        roughness: 0.85,
+        emissiveIntensity: 0.45,
+        roughness: 0.7,
       }),
     )
     this.road.rotation.x = -Math.PI / 2
@@ -146,8 +158,13 @@ export class Engine {
     this.grass.receiveShadow = true
     this.scene.add(this.grass)
 
+    // Phase 8.8: 차선 발광 — 길 라인이 어둠 속에서 빛남
     const dashGeo = new THREE.PlaneGeometry(0.2, 1.5)
-    const dashMat = new THREE.MeshStandardMaterial({ color: COLORS.laneDash })
+    const dashMat = new THREE.MeshStandardMaterial({
+      color: COLORS.laneDash,
+      emissive: COLORS.laneDash,
+      emissiveIntensity: 0.9,
+    })
     for (let i = -90; i < 90; i += 4) {
       const dash = new THREE.Mesh(dashGeo, dashMat)
       dash.rotation.x = -Math.PI / 2
@@ -232,6 +249,12 @@ export class Engine {
   _tick = () => {
     if (!this.running) return
     this._rafId = requestAnimationFrame(this._tick)
+
+    // 일시정지 — 게임 로직은 멈추되 정적 프레임은 계속 렌더
+    if (this.paused) {
+      this.renderer.render(this.scene, this.camera)
+      return
+    }
 
     this.state.currentX += (this.state.targetX - this.state.currentX) * PLAYER_SMOOTH
     this.state.currentZ += (this.state.targetZ - this.state.currentZ) * PLAYER_SMOOTH
@@ -418,6 +441,10 @@ export class Engine {
     if (this.running) return
     this.running = true
     this._tick()
+  }
+
+  setPaused(paused) {
+    this.paused = !!paused
   }
 
   _spawnBoss() {
