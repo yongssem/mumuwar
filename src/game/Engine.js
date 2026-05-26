@@ -259,6 +259,14 @@ export class Engine {
       return
     }
 
+    // Phase 8.14.1: targetZ 자동 회복 — 손가락을 떼면 천천히 0으로
+    //  · 누적된 미세 Y 입력이 영영 retreat로 굳어 캐릭터가 안 걷는 버그 방지
+    //  · 능동 드래그 중에는 입력이 더 빠르게 더해지므로 mechanic은 유지됨
+    if (this.state.targetZ > 0.001) {
+      this.state.targetZ *= 0.985
+      if (this.state.targetZ < 0.05) this.state.targetZ = 0
+    }
+
     this.state.currentX += (this.state.targetX - this.state.currentX) * PLAYER_SMOOTH
     this.state.currentZ += (this.state.targetZ - this.state.currentZ) * PLAYER_SMOOTH
     // Phase 8.6: 후퇴 중 판정 — z>0이거나 후퇴 입력 진행 중

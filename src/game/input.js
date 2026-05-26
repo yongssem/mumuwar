@@ -28,11 +28,20 @@ export function createDragInput(canvas, state, onFirstInput) {
     if (!dragging) return
     const x = getX(e)
     const y = getY(e)
-    const dx = ((x - lastX) / window.innerWidth) * DRAG_SENSITIVITY
+    const rawDx = x - lastX
+    const rawDy = y - lastY
+
+    // X 이동은 항상 적용
+    const dx = (rawDx / window.innerWidth) * DRAG_SENSITIVITY
     state.targetX = Math.max(-limit, Math.min(limit, state.targetX + dx))
-    // Y 아래로 드래그(dy>0) → 뒤로(z 증가). 위로 드래그(dy<0) → 앞으로 이동은 z>=0 클램프로 차단
-    const dy = ((y - lastY) / window.innerHeight) * Z_SENSITIVITY
-    state.targetZ = Math.max(0, Math.min(RETREAT_MAX, (state.targetZ ?? 0) + dy))
+
+    // Y(후퇴) 입력은 Y 변위가 X보다 클 때만 인정 — 가로 스와이프 중 미세
+    // Y 떨림이 누적되어 캐릭터가 영영 "후퇴 중" 판정되는 버그 방지.
+    if (Math.abs(rawDy) > Math.abs(rawDx)) {
+      const dy = (rawDy / window.innerHeight) * Z_SENSITIVITY
+      state.targetZ = Math.max(0, Math.min(RETREAT_MAX, (state.targetZ ?? 0) + dy))
+    }
+
     lastX = x
     lastY = y
   }
