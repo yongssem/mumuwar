@@ -28,60 +28,60 @@ export default function HUD({
 
   return (
     <>
-      {/* 좌상단: 아바타 + stat-pill + 스테이지 뱃지 */}
+      {/* 좌상단 — 아바타 / 자원 카드 3종 / 스테이지 배지 */}
       <div className="hud-left">
-        <div className="hud-avatar-row">
-          <div className="hud-player-card" aria-label="플레이어 아바타">
+        <div className="player-card-wrapper">
+          <div className="player-avatar" aria-label="플레이어 아바타">
             <img
-              className="player-avatar-img"
               src="/assets/sprites/characters/leader-yongssam-celebrate.png"
               alt=""
               draggable={false}
             />
-            <span className="player-level" title={`${grade}학년`}>{grade}</span>
           </div>
-          {nickname && <span className="player-name-tag">{nickname}</span>}
+          <div className="player-level-badge" title={`${grade}학년`}>{grade}</div>
+          {nickname && <div className="player-name-badge">{nickname}</div>}
         </div>
 
-        <div className="hud-stats-row">
-          <div className="stat-pill" title="점수">
-            <span className="pill-icon">⚡</span>
-            <span className="pill-value">{score.toLocaleString()}</span>
-          </div>
-          <div className="stat-pill" title="정답률">
-            <span className="pill-icon">🎯</span>
-            <span className="pill-value">
-              {rate != null ? `${rate}%` : '—'}
-            </span>
-            {rate != null && (
-              <span className="pill-sub">{correct}/{total}</span>
-            )}
-          </div>
-          <div className="stat-pill" title={`${w.name}`}>
-            <span className="pill-icon">{w.emoji}</span>
-            <span className="pill-value">Lv{w.lv}</span>
-            {weaponLv < MAX_WEAPON_LV && (
-              <span className="pill-sub">{streak}/{STREAK_TO_UPGRADE}</span>
-            )}
-          </div>
+        <div className="resource-card" title="점수">
+          <span className="res-icon">⚡</span>
+          <span className="res-label">SCORE</span>
+          <span className="res-value">{score.toLocaleString()}</span>
         </div>
 
-        <div className="hud-stage-badge">
-          <span>STAGE</span>
-          <span className="stage-num">{String(stage).padStart(2, '0')}</span>
-          <span>· {stageDef.name}</span>
+        <div className="resource-card" title="정답률">
+          <span className="res-icon">🎯</span>
+          <span className="res-label">ACCURACY</span>
+          <span className="res-value">{rate != null ? `${rate}%` : '—'}</span>
+          {rate != null && (
+            <span className="res-sub">{correct}/{total}</span>
+          )}
+        </div>
+
+        <div className="resource-card" title={w.name}>
+          <span className="res-icon">{w.emoji}</span>
+          <span className="res-label">WEAPON</span>
+          <span className="res-value">Lv {w.lv}</span>
+          {weaponLv < MAX_WEAPON_LV && (
+            <span className="res-sub">{streak}/{STREAK_TO_UPGRADE}</span>
+          )}
+        </div>
+
+        <div className="stage-badge-large">
+          <span className="badge-tag">STAGE</span>
+          <span className="badge-num">{String(stage).padStart(2, '0')}</span>
+          <span className="badge-name">{stageDef.name}</span>
         </div>
       </div>
 
-      {/* 우상단: 인원 / 시간 / 일시정지 */}
+      {/* 우상단 — 인원 / 시간 / 일시정지 */}
       <div className="hud-right">
-        <div className="hud-counter" title="군중 인원">
+        <div className="counter-card" title="군중 인원">
           <span className="counter-icon">👥</span>
           <span className="counter-value">{count}</span>
         </div>
 
         {timeRemain != null && (
-          <div className={['hud-counter', timeUrgent ? 'urgent' : ''].join(' ')} title="남은 시간">
+          <div className={['counter-card', timeUrgent ? 'urgent' : ''].join(' ')} title="남은 시간">
             <span className="counter-icon">⏱️</span>
             <span className="counter-value">{formatTime(timeRemain)}</span>
           </div>
@@ -89,7 +89,7 @@ export default function HUD({
 
         {onTogglePause && (
           <button
-            className="hud-pause-btn"
+            className="pause-btn"
             onClick={onTogglePause}
             aria-label={paused ? '계속하기' : '일시정지'}
             title="일시정지 (ESC)"
