@@ -64,6 +64,10 @@ export class Player {
     this.baseY = this.sprite.userData.restY
     this.spriteHeight = this.sprite.userData.spriteHeight
 
+    // Phase 8.13: 걷기 모션을 위해 기본 스케일 보관 (scale.y 압축/팽창 베이스)
+    this.baseScaleX = this.sprite.scale.x
+    this.baseScaleY = this.sprite.scale.y
+
     // 닉네임 태그 — 스프라이트 머리 위
     this.nameTag = makeNameTagSprite(name)
     this.nameTag.position.set(0, this.spriteHeight + 0.35, 0)
@@ -87,9 +91,17 @@ export class Player {
     this.celebrateStartTime = performance.now()
     this.celebrateDuration = Math.max(100, duration)
     this.sprite.material = this.celebrateMaterial
+    // Phase 8.13: celebrate 직전 걷기 잔여 상태 리셋 (틸트/스트레치)
+    this.sprite.scale.set(this.baseScaleX, this.baseScaleY, 1)
+    this.celebrateMaterial.rotation = 0
+    if (this.shadow) this.shadow.scale.setScalar(1)
   }
 
-  // Phase 8.6: 후퇴 중에는 걷기 애니메이션 정지
+  // Phase 8.13 — 걷기 모션:
+  //  · y bob   = sin(walkPhase) * 0.08      (위아래 통통)
+  //  · 틸트    = sin(walkPhase) * 0.05      (좌우 기울기, material.rotation)
+  //  · 세로 stretch = 1 + sin(walkPhase·2) * 0.02 (사뿐사뿐)
+  //  · 후퇴/celebrate 중에는 정지
   update(isRetreating = false) {
     // celebrate 중이면 점프 곡선이 모든 기본 모션을 덮어씀
     if (this.celebrating) {
@@ -100,20 +112,37 @@ export class Player {
         this.sprite.position.y = this.baseY + Math.sin(t * Math.PI) * 0.6
         return
       }
-      // 종료 — idle 복귀
+      // 종료 — idle 복귀, 걷기 잔여 상태도 리셋
       this.celebrating = false
       this.sprite.position.y = this.baseY
       this.sprite.material = this.idleMaterial
+      this.idleMaterial.rotation = 0
+      this.sprite.scale.set(this.baseScaleX, this.baseScaleY, 1)
+      this.walkPhase = 0
     }
 
     if (isRetreating) {
-      // 후퇴 중: 호흡 정지, 정적
+      // 후퇴 중: 정지 자세
       this.sprite.position.y = this.baseY
+      this.sprite.material.rotation = 0
+      this.sprite.scale.set(this.baseScaleX, this.baseScaleY, 1)
+      this.shadow.scale.setScalar(1)
       return
     }
 
-    // 걷기 호흡 — 가벼운 sin bob
-    this.walkPhase += 0.25
-    this.sprite.position.y = this.baseY + Math.abs(Math.sin(this.walkPhase)) * 0.08
+    // 평소 걷기 — 한 걸음 ≈ 0.35초 (walkPhase += 0.18 @60fps)
+    this.walkPhase += 0.18
+    const w = this.walkPhase
+    const walkY = Math.sin(w) * 0.08
+    const tilt = Math.sin(w) * 0.05
+    const stretch = Math.sin(w * 2) * 0.02
+
+    this.sprite.position.y = this.baseY + walkY
+    this.sprite.material.rotation = tilt
+    this.sprite.scale.set(this.baseScaleX, this.baseScaleY * (1 + stretch), 1)
+
+    // 그림자: 떠올랐을 때만 살짝 작아짐 (양수 heightRatio만 적용)
+    const heightRatio = Math.max(0, walkY / 0.08)
+    this.shadow.scale.setScalar(1.0 - heightRatio * 0.05)
   }
 }

@@ -24,7 +24,7 @@ export class Crowd {
     this.group = new THREE.Group()
     this.camera = camera
     this.friendCount = 0
-    this.walkPhase = 0
+    // Phase 8.13: walkPhase 폐기 — 각 친구가 phaseOffset로 자체 박자
     this.smoothX = 0
     this.smoothZ = 0
 
@@ -72,10 +72,17 @@ export class Crowd {
     // 재사용 가능한 객체 (allocation 최소화)
     this._mPlane = new THREE.Matrix4()
     this._mShadow = new THREE.Matrix4()
+    this._tmpMatrix = new THREE.Matrix4()
     this._eye = new THREE.Vector3()
     this._pos = new THREE.Vector3()
+    this._shadowPos = new THREE.Vector3()
+    this._shadowScale = new THREE.Vector3(1, 1, 1)
     this._shadowQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2)
     this._scaleOne = new THREE.Vector3(1, 1, 1)
+    // Phase 8.13: 빌보드 × 틸트 합성용
+    this._billboardQuat = new THREE.Quaternion()
+    this._tiltQuat = new THREE.Quaternion()
+    this._zAxis = new THREE.Vector3(0, 0, 1)
 
     // 포메이션 캐시
     this._cachedPositions = null
@@ -123,57 +130,72 @@ export class Crowd {
   // 카메라가 매 프레임 바뀌므로 외부에서 갱신 가능하게 expose
   setCamera(camera) { this.camera = camera }
 
+  // Phase 8.13: 친구마다 phaseOffset로 박자 차이 → "살아있는 군중"
   update(leaderX, leaderZ = 0, isRetreating = false) {
     this.smoothX += (leaderX - this.smoothX) * 0.2
     this.smoothZ += (leaderZ - this.smoothZ) * 0.2
 
     if (this.friendCount === 0) return
 
-    // 걷기 호흡 (모든 친구 공통)
-    const phaseStep = isRetreating ? 0 : 0.25
-    this.walkPhase += phaseStep
-    const bobBase = isRetreating ? 0 : Math.abs(Math.sin(this.walkPhase)) * 0.05
-
     const positions = this._getPositions()
-    const time = performance.now() * 0.002
+    const tMs = performance.now()
+    const tSway = tMs * 0.002      // 느린 떼거리 흔들림 (Phase 8.9)
+    const tWalk = tMs * 0.005      // 빠른 걷기 사이클 (Phase 8.13)
     const cam = this.camera
     const camPos = cam ? cam.position : null
 
     const mPlane = this._mPlane
     const mShadow = this._mShadow
+    const tmpMatrix = this._tmpMatrix
     const eye = this._eye
     const pos = this._pos
+    const shadowPos = this._shadowPos
+    const shadowScale = this._shadowScale
     const shadowQuat = this._shadowQuat
     const scaleOne = this._scaleOne
+    const billboardQ = this._billboardQuat
+    const tiltQ = this._tiltQuat
+    const zAxis = this._zAxis
 
     for (let i = 0; i < this.friendCount; i++) {
       const fp = positions[i + 1]
       const ph = fp.phaseOffset
-      const swayX = Math.sin(time + ph) * 0.08
-      const swayZ = Math.cos(time * 0.7 + ph) * 0.06
-      const swayY = isRetreating ? 0 : Math.abs(Math.sin(time * 2 + ph)) * 0.05
+
+      // 느린 떼거리 흔들림 (각자 다른 위상으로 살아있는 느낌)
+      const swayX = Math.sin(tSway + ph) * 0.08
+      const swayZ = Math.cos(tSway * 0.7 + ph) * 0.06
+
+      // 걷기 sin 모션 (후퇴 시 정지)
+      const walkY = isRetreating ? 0 : Math.sin(tWalk + ph) * 0.08
+      const tilt = isRetreating ? 0 : Math.sin(tWalk + ph) * 0.05
 
       const bx = this.smoothX + fp.x + swayX
       const bz = this.smoothZ + fp.z + swayZ
-      const by = FRIEND_BASE_Y + bobBase + swayY
+      const by = FRIEND_BASE_Y + walkY
 
-      // 빌보드 plane: lookAt(eye=camera, target=friend, up) → +Z가 카메라 향함
       pos.set(bx, by, bz)
+
+      // 빌보드 회전 (카메라 향함)
       if (camPos) {
         eye.copy(camPos)
-        mPlane.lookAt(eye, pos, UP)
+        tmpMatrix.lookAt(eye, pos, UP)
+        billboardQ.setFromRotationMatrix(tmpMatrix)
       } else {
-        mPlane.identity()
+        billboardQ.identity()
       }
-      mPlane.setPosition(bx, by, bz)
+      // 로컬 Z축 틸트 — 빌보드 좌표계에서 화면 평면 회전 (좌우 기울기)
+      tiltQ.setFromAxisAngle(zAxis, tilt)
+      billboardQ.multiply(tiltQ)
+
+      mPlane.compose(pos, billboardQ, scaleOne)
       this.plane.setMatrixAt(i, mPlane)
 
-      // 그림자: 바닥에 평평 (회전 고정), 위치만 갱신
-      mShadow.compose(
-        pos.set(bx, 0.02, bz),
-        shadowQuat,
-        scaleOne,
-      )
+      // 그림자: 발 올라가면 살짝 작아짐 (양수 heightRatio만)
+      const heightRatio = Math.max(0, walkY / 0.08)
+      const ss = 1.0 - heightRatio * 0.05
+      shadowScale.set(ss, ss, ss)
+      shadowPos.set(bx, 0.02, bz)
+      mShadow.compose(shadowPos, shadowQuat, shadowScale)
       this.shadows.setMatrixAt(i, mShadow)
     }
 
