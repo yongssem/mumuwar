@@ -8,7 +8,7 @@ import { BulletPool } from './entities/Bullet.js'
 import { EnemyManager } from './entities/Enemy.js'
 import { Boss, BOSS } from './entities/Boss.js'
 import { FloatingScorePool } from './entities/FloatingScore.js'
-import { getStage } from './stages.js'
+import { getStage, getTheme } from './stages.js'
 import { getWeapon, MAX_WEAPON_LV, STREAK_TO_UPGRADE } from './weapons.js'
 import { createDragInput } from './input.js'
 import { playSfx } from './utils/audio.js'
@@ -60,6 +60,7 @@ export class Engine {
     this.timeUp = false
     this.state = { speed: getGradeSpeed(grade), targetX: 0, currentX: 0, targetZ: 0, currentZ: 0 }
     this.dashes = []
+    this.trees = []
     this.running = false
     this.paused = false
 
@@ -69,7 +70,7 @@ export class Engine {
     this._initRoad()
     this._initCrowd()
     this._initPlayer()
-    // Phase 8.16: 나무 제거 — 학원가 배경의 건물/간판이 자체 깊이감 제공
+    this._initTrees()
     this.applyStageTheme()
     this.gates = new GateManager(this.scene, { grade, stage })
     this.bursts = new BurstPool(this.scene)
@@ -103,11 +104,12 @@ export class Engine {
     this.scene = new THREE.Scene()
     // Phase 8.15: scene.background = null — CSS 배경 이미지가 보이도록
     this.scene.background = null
-    // Phase 8.16: 길이 더 빨리 어둠으로 페이드 — 학원가 배경과 매끄러운 합쳐짐
-    this.scene.fog = new THREE.Fog(0x1A1840, 15, 30)
+    // 안개는 유지: 멀리 가는 적/게이트가 배경으로 자연스럽게 페이드.
+    //  · 색은 학원가 야경 톤(다크 인디고) 고정 — 단일 bg 이미지에 맞춤
+    this.scene.fog = new THREE.Fog(0x1A1840, 25, 50)
 
-    // §10-6 — Phase 8.16: FOV 60→65 (배경 더 많이 캡처)
-    this.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 200)
+    // §10-6
+    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
     this.camera.position.set(0, 9, 11)
     this.camera.lookAt(0, 0, -3)
   }
@@ -146,29 +148,30 @@ export class Engine {
   }
 
   _initRoad() {
-    // Phase 8.16: 학원가 배경과 톤 통합 — 길 색 어둡게, 가장자리 부드럽게
-    //  · 도로는 배경 위 살짝 떠 있는 어두운 보라색 (#1A1024)
-    //  · 차선 골드는 그대로 — 진행 라인의 시각 포커스
-    //  · 잔디 폐기 — CSS 배경 학원가가 좌우로 비치도록
+    // Phase 8.8: 도로 자체 발광 강화 — 멀리까지 길이 보이도록
     this.road = new THREE.Mesh(
       new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
       new THREE.MeshStandardMaterial({
-        color: 0x1A1024,
-        emissive: 0x2A1A40,
-        emissiveIntensity: 0.1,
-        roughness: 0.85,
-        transparent: true,
-        opacity: 0.95,
+        color: COLORS.road,
+        emissive: COLORS.roadEmissive,
+        emissiveIntensity: 0.45,
+        roughness: 0.7,
       }),
     )
     this.road.rotation.x = -Math.PI / 2
     this.road.receiveShadow = true
     this.scene.add(this.road)
 
-    // Phase 8.16: grass 제거 — 배경 학원가가 좌우로 보이도록
-    // (필요 시 .ingame-bg가 CSS로 어두운 톤을 제공)
+    this.grass = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, ROAD_LENGTH),
+      new THREE.MeshStandardMaterial({ color: COLORS.grass, roughness: 1 }),
+    )
+    this.grass.rotation.x = -Math.PI / 2
+    this.grass.position.y = -0.01
+    this.grass.receiveShadow = true
+    this.scene.add(this.grass)
 
-    // 차선 발광 — 길 라인이 어둠 속에서 빛남 (포커스 라인)
+    // Phase 8.8: 차선 발광 — 길 라인이 어둠 속에서 빛남
     const dashGeo = new THREE.PlaneGeometry(0.2, 1.5)
     const dashMat = new THREE.MeshStandardMaterial({
       color: COLORS.laneDash,
@@ -196,12 +199,59 @@ export class Engine {
   }
 
   applyStageTheme() {
-    // Phase 8.16: 단일 학원가 배경에 맞춰 도로/안개 모두 고정값 사용.
-    // 스테이지별 테마는 비활성 (이미지가 다양해지면 다시 활성화 예정).
+    const t = getTheme(this.stage)
+    // Phase 8.15: scene.background는 CSS가 처리 — 여기서 갱신하지 않음
+    // fog 색도 단일 bg 이미지에 맞춰 고정 (near/far만 테마 반영)
+    if (this.scene.fog) {
+      this.scene.fog.near = t.fogNear
+      this.scene.fog.far = t.fogFar
+    }
+    this.road?.material?.color.set(t.road)
+    this.grass?.material?.color.set(t.grass)
   }
 
-  // Phase 8.16: _initTrees 폐기 — 학원가 배경(buildings/sign)으로 충분
-  _initTrees() { /* no-op */ }
+  _initTrees() {
+    // Phase 8.7: 다크 퍼플 기둥 + 시안 발광 잎 (야간 숲 톤)
+    const trunkMat = new THREE.MeshStandardMaterial({
+      color: COLORS.trunk,
+      emissive: COLORS.trunk,
+      emissiveIntensity: 0.15,
+      roughness: 0.7,
+    })
+    const leafMat = new THREE.MeshStandardMaterial({
+      color: COLORS.leaf,
+      emissive: COLORS.leafEmissive,
+      emissiveIntensity: 0.35,
+      roughness: 0.5,
+    })
+    for (let i = 0; i < 30; i++) {
+      const tree = new THREE.Group()
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.3, 1, 8),
+        trunkMat,
+      )
+      trunk.position.y = 0.5
+      trunk.castShadow = true
+      tree.add(trunk)
+
+      const leaf = new THREE.Mesh(
+        new THREE.ConeGeometry(0.8, 1.8, 8),
+        leafMat,
+      )
+      leaf.position.y = 1.9
+      leaf.castShadow = true
+      tree.add(leaf)
+
+      const side = Math.random() > 0.5 ? 1 : -1
+      tree.position.set(
+        side * (ROAD_WIDTH / 2 + 2 + Math.random() * 8),
+        0,
+        -i * 8 - Math.random() * 4,
+      )
+      this.scene.add(tree)
+      this.trees.push(tree)
+    }
+  }
 
   _onResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight
@@ -376,7 +426,14 @@ export class Engine {
       if (this.clearDelay === 0) this._setPhase(PHASE.CLEAR)
     }
 
-    // Phase 8.16: trees 업데이트 루프 폐기
+    for (const tree of this.trees) {
+      tree.position.z += this.state.speed
+      if (tree.position.z > 15) {
+        tree.position.z -= 250
+        const side = Math.random() > 0.5 ? 1 : -1
+        tree.position.x = side * (ROAD_WIDTH / 2 + 2 + Math.random() * 8)
+      }
+    }
 
     for (const dash of this.dashes) {
       dash.position.z += this.state.speed
