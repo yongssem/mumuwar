@@ -1,6 +1,21 @@
+import { useState } from 'react'
 import { SUPPORTED_GRADES } from '../game/utils/problems.js'
+import { NICKNAME_MAX, sanitizeNickname } from '../lib/storage.js'
 
-export default function StartScreen({ selectedGrade, highScore, soundOn, onToggleSound, onPick, onStart }) {
+export default function StartScreen({
+  selectedGrade, highScore, soundOn,
+  nickname = '',
+  onToggleSound, onPick, onStart,
+}) {
+  const [name, setName] = useState(nickname)
+  const trimmed = sanitizeNickname(name)
+  const canStart = trimmed.length > 0
+
+  const submit = () => {
+    if (!canStart) return
+    onStart(trimmed)
+  }
+
   return (
     <div className="fixed inset-0 z-30" style={{ background: 'var(--bg-primary)' }}>
       {/* 배경 이미지 */}
@@ -56,7 +71,29 @@ export default function StartScreen({ selectedGrade, highScore, soundOn, onToggl
             </p>
           )}
 
-          <button onClick={onStart} className="btn-primary-large" style={{ marginBottom: 16 }}>
+          <div className="nickname-label">NICKNAME</div>
+          <input
+            className="nickname-input"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, NICKNAME_MAX))}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
+            placeholder="닉네임을 입력하세요"
+            maxLength={NICKNAME_MAX}
+            autoFocus={!nickname}
+            style={{ marginBottom: 14 }}
+          />
+
+          <button
+            onClick={submit}
+            disabled={!canStart}
+            className="btn-primary-large"
+            style={{
+              marginBottom: 16,
+              opacity: canStart ? 1 : 0.45,
+              cursor: canStart ? 'pointer' : 'not-allowed',
+            }}
+          >
             게임 시작 <span style={{ marginLeft: 6 }}>▶</span>
           </button>
 

@@ -2,6 +2,7 @@ import { getWeapon, STREAK_TO_UPGRADE, MAX_WEAPON_LV } from '../game/weapons.js'
 import { getStage } from '../game/stages.js'
 
 export default function HUD({
+  nickname = '',
   grade, score, count, highScore,
   correct, total,
   bossHp, bossMaxHp, phase,
@@ -24,6 +25,18 @@ export default function HUD({
           <span>⚔</span>
           <span>무궁무진 워</span>
         </div>
+
+        {nickname && (
+          <div className="hud-stat" style={{ marginBottom: 4 }}>
+            <span>🎮</span>
+            <span style={{
+              fontFamily: 'var(--font-pretendard)',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              fontSize: 12,
+            }}>{nickname}</span>
+          </div>
+        )}
 
         <div className="hud-stat">
           <span style={{ color: 'var(--accent-gold)' }}>⚡</span>

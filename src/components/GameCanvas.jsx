@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Engine, PHASE } from '../game/Engine.js'
-import { commitStageResult, loadProgress, setGrade as saveGrade, calcStars, setSoundEnabled } from '../lib/storage.js'
+import { commitStageResult, loadProgress, setGrade as saveGrade, setNickname as saveNickname, calcStars, setSoundEnabled } from '../lib/storage.js'
 import { playBgm, stopBgm, setMuted } from '../game/utils/audio.js'
 import HUD from './HUD.jsx'
 import Clear from './Clear.jsx'
@@ -16,6 +16,7 @@ export default function GameCanvas() {
 
   const [progress, setProgress] = useState(() => loadProgress())
   const [grade, setGrade] = useState(progress.grade || 3)
+  const [nickname, setNickname] = useState(progress.nickname || '')
   const [soundOn, setSoundOn] = useState(progress.settings?.sound !== false)
   const [screen, setScreen] = useState('start') // 'start' | 'stageSelect' | 'play'
   const [stage, setStage] = useState(1)
@@ -110,8 +111,11 @@ export default function GameCanvas() {
     setRunKey((k) => k + 1)
   }, [])
 
-  const handleStart = useCallback(() => {
+  const handleStart = useCallback((name) => {
     saveGrade(grade)
+    const saved = saveNickname(name)
+    setNickname(saved.nickname)
+    setProgress(saved)
     setScreen('stageSelect')
   }, [grade])
 
@@ -171,6 +175,7 @@ export default function GameCanvas() {
       {screen === 'play' && (
         <>
           <HUD
+            nickname={nickname}
             grade={grade}
             score={score}
             count={count}
@@ -225,6 +230,7 @@ export default function GameCanvas() {
           selectedGrade={grade}
           highScore={progress.highScore || 0}
           soundOn={soundOn}
+          nickname={nickname}
           onToggleSound={toggleSound}
           onPick={setGrade}
           onStart={handleStart}

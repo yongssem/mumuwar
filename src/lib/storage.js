@@ -2,6 +2,7 @@
 const KEY = 'mumuwar_v2'
 
 const DEFAULT = {
+  nickname: '',
   grade: 3,
   highScore: 0,
   stagesUnlocked: {},   // { grade3: [1, 2, ...] }
@@ -11,6 +12,12 @@ const DEFAULT = {
   totalPlays: 0,
   lastPlayed: null,
   settings: { sound: true, sensitivity: 1.0 },
+}
+
+export const NICKNAME_MAX = 12
+
+export function sanitizeNickname(raw) {
+  return String(raw ?? '').replace(/\s+/g, ' ').trim().slice(0, NICKNAME_MAX)
 }
 
 const gkey = (g) => `grade${g}`
@@ -32,6 +39,13 @@ export function saveProgress(data) {
 export function setGrade(grade) {
   const p = loadProgress()
   p.grade = grade
+  saveProgress(p)
+  return p
+}
+
+export function setNickname(nickname) {
+  const p = loadProgress()
+  p.nickname = sanitizeNickname(nickname)
   saveProgress(p)
   return p
 }
