@@ -394,6 +394,7 @@ export class Engine {
           playSfx('bossDie')
           this.score += 500
           this.onScoreChange?.(this.score)
+          this.player?.triggerCelebrate(1000)
           this.clearDelay = 90
         }
         return true
@@ -470,7 +471,10 @@ export class Engine {
       this.floaters.spawn(r.position, `${delta}`, '#E53935', 1.2)
     }
     playSfx(r.correct ? 'correct' : 'wrong')
-    if (r.correct) playSfx('recruit')
+    if (r.correct) {
+      playSfx('recruit')
+      this.player?.triggerCelebrate(600)
+    }
     this.onCountChange?.(this.crowd.count)
     this.onGateAnswer?.({ ...r, kind: 'pass' })
 
@@ -519,6 +523,8 @@ export class Engine {
   _setPhase(p) {
     if (this.phase === p) return
     this.phase = p
+    // Phase 8.10: 클리어 시 주인공이 점프하며 환호
+    if (p === PHASE.CLEAR) this.player?.triggerCelebrate(1500)
     this.onPhaseChange?.(p, { score: this.score, crowd: this.crowd.count })
   }
 

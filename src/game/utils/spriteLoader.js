@@ -19,13 +19,13 @@ function applyPixelFilters(tex) {
   tex.needsUpdate = true
 }
 
-// .png 우선 시도, 실패 시 .jpg 폴백
-function loadPixelTextureWithFallback(name, onReady) {
-  const key = `enemy:${name}`
+// .png 우선 시도, 실패 시 .jpg 폴백 — subdir 별로 캐시
+function loadPixelTextureWithFallback(subdir, name, onReady) {
+  const key = `${subdir}:${name}`
   if (cache.has(key)) return cache.get(key)
 
-  const pngUrl = `/assets/sprites/enemies/${name}.png`
-  const jpgUrl = `/assets/sprites/enemies/${name}.jpg`
+  const pngUrl = `/assets/sprites/${subdir}/${name}.png`
+  const jpgUrl = `/assets/sprites/${subdir}/${name}.jpg`
 
   const tex = textureLoader.load(
     pngUrl,
@@ -44,13 +44,36 @@ function loadPixelTextureWithFallback(name, onReady) {
           onReady?.()
         },
         undefined,
-        (err) => console.warn(`[spriteLoader] 로드 실패: ${name} (png/jpg 모두 없음)`, err),
+        (err) => console.warn(`[spriteLoader] 로드 실패: ${subdir}/${name} (png/jpg 모두 없음)`, err),
       )
     },
   )
   applyPixelFilters(tex)
   cache.set(key, tex)
   return tex
+}
+
+// 공통 sprite 생성기 (subdir 만 다름)
+function buildSprite(subdir, name, scale) {
+  const mat = new THREE.SpriteMaterial({
+    map: null,
+    transparent: true,
+    alphaTest: 0.05,
+    depthWrite: false,
+  })
+  const tex = loadPixelTextureWithFallback(subdir, name, () => {
+    mat.map = tex
+    mat.needsUpdate = true
+  })
+  mat.map = tex
+  const sprite = new THREE.Sprite(mat)
+  sprite.frustumCulled = false
+  const size = SPRITE_BASE * scale
+  sprite.scale.set(size, size, 1)
+  sprite.position.y = size / 2
+  sprite.userData.restY = size / 2
+  sprite.userData.spriteHeight = size
+  return sprite
 }
 
 /**
@@ -60,27 +83,14 @@ function loadPixelTextureWithFallback(name, onReady) {
  * @returns {THREE.Sprite}
  */
 export function loadEnemySprite(name, scale = 1.0) {
-  const mat = new THREE.SpriteMaterial({
-    map: null,
-    transparent: true,
-    alphaTest: 0.05,
-    depthWrite: false,
-  })
-  const tex = loadPixelTextureWithFallback(name, () => {
-    mat.map = tex
-    mat.needsUpdate = true
-  })
-  mat.map = tex
-  const sprite = new THREE.Sprite(mat)
-  // 모든 적/보스는 카메라 안에 있을 가능성이 높아 프러스텀 컬링 끄기
-  sprite.frustumCulled = false
-  const size = SPRITE_BASE * scale
-  sprite.scale.set(size, size, 1)
-  // bottom anchor: 스프라이트가 바닥에 서있도록 y = height/2
-  sprite.position.y = size / 2
-  sprite.userData.restY = size / 2
-  sprite.userData.spriteHeight = size
-  return sprite
+  return buildSprite('enemies', name, scale)
+}
+
+/**
+ * loadCharacterSprite(name, scale) — public/assets/sprites/characters/${name}.png
+ */
+export function loadCharacterSprite(name, scale = 1.0) {
+  return buildSprite('characters', name, scale)
 }
 
 /**

@@ -1,10 +1,9 @@
 import * as THREE from 'three'
-import { COLORS } from '../config.js'
+import { loadCharacterSprite, makeGroundShadow } from '../utils/spriteLoader.js'
 
-// GAME_DESIGN v2.1 §10-1-1 — 주인공 (Leader)
-const LEADER_BODY = 0x4A90E2
-const HAT_COLOR   = 0xE53935
-const LEADER_SCALE = 1.2
+// Phase 8.10 — 주인공 픽셀 아트 스프라이트 (idle/celebrate 두 상태)
+// 친구보다 살짝 큼 — 적군(2.2)과 동급 또는 약간 큰 정도
+const LEADER_SPRITE_SCALE = 1.25  // 월드 ~2.75 단위
 
 function makeNameTagSprite(name) {
   const c = document.createElement('canvas')
@@ -45,82 +44,76 @@ function makeNameTagSprite(name) {
 export class Player {
   constructor(name = '용쌤') {
     this.group = new THREE.Group()
-    this.group.scale.set(LEADER_SCALE, LEADER_SCALE, LEADER_SCALE)
     this.walkPhase = 0
 
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 0.7, 0.4),
-      new THREE.MeshStandardMaterial({ color: LEADER_BODY }),
-    )
-    body.position.y = 0.85
-    body.castShadow = true
-    this.group.add(body)
+    // 리더 표식 — 친구와 차별화되는 진한 그림자 (반경 살짝 큼)
+    this.shadow = makeGroundShadow(0.75)
+    this.shadow.material.opacity = 0.6
+    this.group.add(this.shadow)
 
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.3, 16, 16),
-      new THREE.MeshStandardMaterial({ color: COLORS.skin }),
-    )
-    head.position.y = 1.5
-    head.castShadow = true
-    this.group.add(head)
+    // idle 스프라이트 (뒷모습) — 항상 씬에 살아있음
+    this.sprite = loadCharacterSprite('leader-yongssam-idle', LEADER_SPRITE_SCALE)
+    this.group.add(this.sprite)
 
-    // 빨간 모자 (chef hat 스타일: cylinder top + brim)
-    const hatMat = new THREE.MeshStandardMaterial({ color: HAT_COLOR })
-    const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.22, 14), hatMat)
-    hatTop.position.y = 1.88
-    hatTop.castShadow = true
-    this.group.add(hatTop)
-    const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.05, 16), hatMat)
-    hatBrim.position.y = 1.76
-    this.group.add(hatBrim)
+    // celebrate 스프라이트는 머티리얼만 미리 로드해두고 swap 방식
+    const celebrateSprite = loadCharacterSprite('leader-yongssam-celebrate', LEADER_SPRITE_SCALE)
+    this.idleMaterial = this.sprite.material
+    this.celebrateMaterial = celebrateSprite.material
+    // celebrateSprite의 객체 자체는 버림 (material만 사용)
 
-    const legGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2)
-    const legMat = new THREE.MeshStandardMaterial({ color: COLORS.pants })
-    this.leftLeg = new THREE.Mesh(legGeo, legMat)
-    this.leftLeg.position.set(-0.18, 0.3, 0)
-    this.leftLeg.castShadow = true
-    this.group.add(this.leftLeg)
-    this.rightLeg = new THREE.Mesh(legGeo, legMat)
-    this.rightLeg.position.set(0.18, 0.3, 0)
-    this.rightLeg.castShadow = true
-    this.group.add(this.rightLeg)
+    this.baseY = this.sprite.userData.restY
+    this.spriteHeight = this.sprite.userData.spriteHeight
 
-    const armGeo = new THREE.BoxGeometry(0.15, 0.55, 0.15)
-    const armMat = new THREE.MeshStandardMaterial({ color: COLORS.skin })
-    this.leftArm = new THREE.Mesh(armGeo, armMat)
-    this.leftArm.position.set(-0.4, 0.9, 0)
-    this.leftArm.castShadow = true
-    this.group.add(this.leftArm)
-    this.rightArm = new THREE.Mesh(armGeo, armMat)
-    this.rightArm.position.set(0.4, 0.9, 0)
-    this.rightArm.castShadow = true
-    this.group.add(this.rightArm)
+    // 닉네임 태그 — 스프라이트 머리 위
+    this.nameTag = makeNameTagSprite(name)
+    this.nameTag.position.set(0, this.spriteHeight + 0.35, 0)
+    this.group.add(this.nameTag)
 
-    const nameTag = makeNameTagSprite(name)
-    nameTag.position.set(0, 2.35, 0)
-    this.group.add(nameTag)
+    // celebrate 상태
+    this.celebrating = false
+    this.celebrateStartTime = 0
+    this.celebrateDuration = 0
   }
 
   setX(x) { this.group.position.x = x }
   setZ(z) { this.group.position.z = z }
 
-  // Phase 8.6: 후퇴 중에는 걷기 애니메이션 정지 (서 있는 느낌)
+  /**
+   * 정답/보스킬/클리어 시 호출 — celebrate 스프라이트로 잠시 바뀌고 점프.
+   * @param {number} duration ms
+   */
+  triggerCelebrate(duration = 500) {
+    this.celebrating = true
+    this.celebrateStartTime = performance.now()
+    this.celebrateDuration = Math.max(100, duration)
+    this.sprite.material = this.celebrateMaterial
+  }
+
+  // Phase 8.6: 후퇴 중에는 걷기 애니메이션 정지
   update(isRetreating = false) {
+    // celebrate 중이면 점프 곡선이 모든 기본 모션을 덮어씀
+    if (this.celebrating) {
+      const elapsed = performance.now() - this.celebrateStartTime
+      const t = elapsed / this.celebrateDuration
+      if (t < 1) {
+        // sin(π·t): 0 → 1 → 0 형태의 점프 호
+        this.sprite.position.y = this.baseY + Math.sin(t * Math.PI) * 0.6
+        return
+      }
+      // 종료 — idle 복귀
+      this.celebrating = false
+      this.sprite.position.y = this.baseY
+      this.sprite.material = this.idleMaterial
+    }
+
     if (isRetreating) {
-      // 다리/팔 천천히 휴식 자세로 복귀
-      this.leftLeg.rotation.x *= 0.85
-      this.rightLeg.rotation.x *= 0.85
-      this.leftArm.rotation.x *= 0.85
-      this.rightArm.rotation.x *= 0.85
-      this.group.position.y *= 0.85
+      // 후퇴 중: 호흡 정지, 정적
+      this.sprite.position.y = this.baseY
       return
     }
+
+    // 걷기 호흡 — 가벼운 sin bob
     this.walkPhase += 0.25
-    const swing = Math.sin(this.walkPhase) * 0.3
-    this.leftLeg.rotation.x = swing
-    this.rightLeg.rotation.x = -swing
-    this.leftArm.rotation.x = -swing * 0.8
-    this.rightArm.rotation.x = swing * 0.8
-    this.group.position.y = Math.abs(Math.sin(this.walkPhase)) * 0.06
+    this.sprite.position.y = this.baseY + Math.abs(Math.sin(this.walkPhase)) * 0.08
   }
 }
