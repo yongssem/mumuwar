@@ -12,6 +12,7 @@ import { getStage, getTheme } from './stages.js'
 import { getWeapon, MAX_WEAPON_LV, STREAK_TO_UPGRADE } from './weapons.js'
 import { createDragInput } from './input.js'
 import { playSfx } from './utils/audio.js'
+import { vibrate, HAPTIC } from './utils/haptics.js'
 
 export const PHASE = {
   PLAYING: 'PLAYING',
@@ -19,6 +20,18 @@ export const PHASE = {
   CLEAR: 'CLEAR',
   GAMEOVER: 'GAMEOVER',
 }
+
+// 고정 타임스텝 — 화면 주사율(90/120Hz)과 무관하게 로직은 항상 60Hz
+const LOGIC_STEP_MS = 1000 / 60
+const MAX_CATCHUP_STEPS = 4
+
+// 콤보/피버 튜닝
+const COMBO_WINDOW_FRAMES = 150       // 2.5초 안에 다음 킬 없으면 콤보 끊김 (저학년 스폰 간격 고려)
+const COMBO_MAX_MULT_STACK = 20       // 배율에 반영되는 콤보 상한 (1 + 20×0.1 = ×3)
+const FEVER_TRIGGER_COMBO = 10
+const FEVER_FRAMES = 300              // 5초
+const FEVER_COOLDOWN_FRAMES = 420     // 피버 종료 후 7초간 재발동 불가
+const COUNTDOWN_FRAMES = 180          // 3-2-1 각 1초
 
 export class Engine {
   constructor(canvas, {
@@ -34,6 +47,9 @@ export class Engine {
     onWeaponChange,
     onStreakChange,
     onTimeChange,
+    onComboChange,
+    onFeverChange,
+    onCountdownChange,
   } = {}) {
     this.canvas = canvas
     this.grade = grade
@@ -48,6 +64,9 @@ export class Engine {
     this.onWeaponChange = onWeaponChange
     this.onStreakChange = onStreakChange
     this.onTimeChange = onTimeChange
+    this.onComboChange = onComboChange
+    this.onFeverChange = onFeverChange
+    this.onCountdownChange = onCountdownChange
     this.score = 0
     this.fireCooldown = 0
     this.phase = PHASE.PLAYING
@@ -58,6 +77,18 @@ export class Engine {
     this.shake = 0
     this.elapsedFrames = 0
     this.timeUp = false
+    // 콤보/피버
+    this.combo = 0
+    this.comboTimer = 0
+    this.feverFrames = 0
+    this.feverCooldown = 0
+    // 시작 카운트다운 (3-2-1-GO)
+    this.countdown = COUNTDOWN_FRAMES
+    this._lastCountdownSec = -1
+    this._lastTickSec = -1
+    // 고정 타임스텝 누산기
+    this._lastTime = 0
+    this._acc = 0
     this.state = { speed: getGradeSpeed(grade), targetX: 0, currentX: 0, targetZ: 0, currentZ: 0 }
     this.dashes = []
     this.trees = []
@@ -84,6 +115,10 @@ export class Engine {
     this._onResize = this._onResize.bind(this)
     window.addEventListener('resize', this._onResize)
     this._teardownInput = createDragInput(canvas, this.state, onFirstInput)
+
+    // HUD 초기값 즉시 동기화 — React 기본값(스테일)이 첫 이벤트까지 노출되는 버그 방지
+    this.onCountChange?.(this.crowd.count)
+    this.onTimeChange?.(this.stageDef.duration, this.stageDef.duration)
   }
 
   _initRenderer() {
@@ -259,16 +294,36 @@ export class Engine {
     this.renderer.setSize(window.innerWidth, window.innerHeight)
   }
 
-  _tick = () => {
+  _tick = (now = 0) => {
     if (!this.running) return
     this._rafId = requestAnimationFrame(this._tick)
 
     // 일시정지 — 게임 로직은 멈추되 정적 프레임은 계속 렌더
     if (this.paused) {
+      this._lastTime = now // 재개 시 dt 스파이크 방지
       this.renderer.render(this.scene, this.camera)
       return
     }
 
+    // 고정 타임스텝 — 90/120Hz 기기에서도 게임 속도 동일
+    if (!this._lastTime) this._lastTime = now
+    let dt = now - this._lastTime
+    this._lastTime = now
+    if (dt > 250) dt = 250 // 탭 전환 복귀 시 폭주 방지
+    this._acc += dt
+    let steps = 0
+    while (this._acc >= LOGIC_STEP_MS && steps < MAX_CATCHUP_STEPS) {
+      this._step()
+      this._acc -= LOGIC_STEP_MS
+      steps += 1
+    }
+    if (steps === MAX_CATCHUP_STEPS) this._acc = 0 // 못 따라잡으면 슬로우모션 대신 버림
+
+    this.renderer.render(this.scene, this.camera)
+  }
+
+  // 60Hz 논리 1스텝
+  _step() {
     // Phase 8.14.2: targetZ 자동 감쇠 제거 — 의도적 후퇴는 유지돼야 함.
     //  · 누적 버그는 input.js의 축 필터 + 최소 임계로 차단.
 
@@ -281,13 +336,55 @@ export class Engine {
     this.player.update(isRetreating)
     this.crowd.update(this.state.currentX, this.state.currentZ, isRetreating)
 
+    // 시작 카운트다운 — 3·2·1·GO 동안 이동/조준만 가능, 나머지 로직 정지
+    if (this.countdown > 0) {
+      const sec = Math.ceil(this.countdown / 60)
+      if (sec !== this._lastCountdownSec) {
+        this._lastCountdownSec = sec
+        this.onCountdownChange?.(sec)
+        playSfx('count')
+      }
+      this.countdown -= 1
+      if (this.countdown === 0) {
+        this.onCountdownChange?.(0) // 0 = GO!
+        playSfx('go')
+        vibrate(HAPTIC.go)
+      }
+      this._updateCamera()
+      return
+    }
+
+    // 콤보 타이머 — 시간 안에 킬 못 이으면 끊김
+    if (this.comboTimer > 0) {
+      this.comboTimer -= 1
+      if (this.comboTimer === 0 && this.combo > 0) {
+        this.combo = 0
+        this.onComboChange?.(0, 1)
+      }
+    }
+    // 피버 타이머
+    if (this.feverFrames > 0) {
+      this.feverFrames -= 1
+      if (this.feverFrames === 0) {
+        this.feverCooldown = FEVER_COOLDOWN_FRAMES
+        this.onFeverChange?.(false)
+      }
+    } else if (this.feverCooldown > 0) {
+      this.feverCooldown -= 1
+    }
+
     // 시간 카운트 (게임플레이 진행 중에만)
     if (this.phase === PHASE.PLAYING) {
       this.elapsedFrames += 1
       const elapsedSec = this.elapsedFrames / 60
-      if (this.elapsedFrames % 30 === 0) {
+      if (this.elapsedFrames === 1 || this.elapsedFrames % 30 === 0) {
         const remain = Math.max(0, Math.ceil(this.stageDef.duration - elapsedSec))
         this.onTimeChange?.(remain, this.stageDef.duration)
+        // 막판 5초 카운트 사운드 (초당 1회)
+        if (remain <= 5 && remain > 0 && remain !== this._lastTickSec) {
+          this._lastTickSec = remain
+          playSfx('tick')
+        }
       }
       if (!this.timeUp && elapsedSec >= this.stageDef.duration) {
         this.timeUp = true
@@ -320,21 +417,23 @@ export class Engine {
         const after = Math.max(0, this.crowd.count - enemy.type.collisionDamage)
         this.crowd.setCount(after)
         this.bursts.spawn(enemy.mesh.position.clone(), 0xff0000)
+        vibrate(HAPTIC.crowdHit)
         this.onCountChange?.(after)
         if (after <= 0) this._setPhase(PHASE.GAMEOVER)
       }, this.state.currentZ)
     }
     this.floaters.update(this.state.speed)
 
-    // 보스 갱신
+    // 보스 갱신 — 후퇴(currentZ) 반영해 발사체 판정
     if (this.boss) {
       this.boss.update(this.state.speed, this.state.currentX, (damage) => {
         const after = Math.max(0, this.crowd.count - damage)
         this.crowd.setCount(after)
         this.onCountChange?.(after)
         this.bursts.spawn(this.crowd.group.position.clone().setX(this.state.currentX), 0xff0000)
+        vibrate(HAPTIC.crowdHit)
         if (after <= 0) this._setPhase(PHASE.GAMEOVER)
-      })
+      }, this.state.currentZ)
       this.onBossHpChange?.(this.boss.hp, BOSS.maxHp)
     }
 
@@ -345,7 +444,8 @@ export class Engine {
       const w = getWeapon(this.weaponLv)
       // crowd.count = 친구 수. 리더 포함 총원 = count + 1
       const totalCrowd = this.crowd.count + 1
-      const shooterCount = Math.max(1, Math.min(30, Math.floor(totalCrowd * 0.2)))
+      // 무기 shots 스탯 = 최소 동시 발사 수 — 레벨업하면 확실히 화력이 늘어난 게 보임
+      const shooterCount = Math.max(w.shots, Math.min(30, Math.floor(totalCrowd * 0.2)))
       // 총 DPS 유지: 데미지를 사격자 수로 분산
       const totalDamage = Math.max(1, Math.round(w.damage * Math.sqrt(totalCrowd)))
       const perBulletDamage = Math.max(1, Math.round(totalDamage / shooterCount))
@@ -356,7 +456,8 @@ export class Engine {
         this.bullets.spawn(s.x, s.z, perBulletDamage, vx, 1.0)
         this.bullets.flashMuzzleAt(s.x, 1.5, s.z)
       }
-      this.fireCooldown = w.cooldown
+      // 피버 중엔 발사 속도 2배
+      this.fireCooldown = this.feverFrames > 0 ? Math.max(4, Math.round(w.cooldown / 2)) : w.cooldown
       playSfx('shoot')
     }
 
@@ -364,15 +465,20 @@ export class Engine {
       const result = this.enemies.checkBulletHit(b)
       if (result?.killed) {
         const enemy = result.enemy
-        // Phase 9.0: enemy.score 는 변종 배수 반영된 최종값
-        const earned = enemy.score ?? enemy.type.score
+        // 콤보 갱신 — 1.5초 안에 킬을 이으면 배율 상승
+        this._onEnemyKill()
+        const comboMult = 1 + Math.min(this.combo, COMBO_MAX_MULT_STACK) * 0.1
+        const feverMult = this.feverFrames > 0 ? 2 : 1
+        // Phase 9.0: enemy.score 는 변종 배수 반영된 최종값 + 콤보/피버 배율
+        const earned = Math.round((enemy.score ?? enemy.type.score) * comboMult * feverMult)
         this.score += earned
         // 변종일수록 더 화려한 폭발 (basic 1.6, elite 2.0, boss 2.6)
         const burstSize = enemy.variant === 'boss' ? 2.6 : enemy.variant === 'elite' ? 2.0 : 1.6
         const burstParticles = enemy.variant === 'boss' ? 22 : enemy.variant === 'elite' ? 16 : 12
         this.bursts.spawn(enemy.mesh.position.clone(), enemy.type.color, burstSize, burstParticles)
         this.bursts.spawnFlash(enemy.mesh.position.clone(), 1.4)
-        this.floaters.spawn(enemy.mesh.position.clone(), `+${earned}`, '#FFD700', 2)
+        const scoreColor = feverMult > 1 ? '#FF6EC7' : '#FFD700'
+        this.floaters.spawn(enemy.mesh.position.clone(), `+${earned}`, scoreColor, 2)
         playSfx('kill')
         this.onScoreChange?.(this.score)
         return true
@@ -410,6 +516,7 @@ export class Engine {
           this.bursts.spawn(this.boss.mesh.position.clone(), 0xFFD600)
           this.floaters.spawn(this.boss.mesh.position.clone(), '+500', '#FFD600')
           playSfx('bossDie')
+          vibrate(HAPTIC.bossDie)
           this.score += 500
           this.onScoreChange?.(this.score)
           this.player?.triggerCelebrate(1000)
@@ -440,6 +547,10 @@ export class Engine {
       if (dash.position.z > 10) dash.position.z -= 184
     }
 
+    this._updateCamera()
+  }
+
+  _updateCamera() {
     this.camera.position.x += (this.state.currentX * 0.25 - this.camera.position.x) * 0.1
     // Phase 8.6: 카메라가 플레이어 z의 30%만 따라가 게이트 시야 유지
     const targetCamZ = 11 + this.state.currentZ * 0.3
@@ -454,14 +565,29 @@ export class Engine {
       this.shake -= 1
     }
     this.camera.lookAt(this.state.currentX * 0.25, shakeY, -3)
+  }
 
-    this.renderer.render(this.scene, this.camera)
+  // 적 처치 → 콤보 스택 + 피버 발동 판정
+  _onEnemyKill() {
+    this.combo += 1
+    this.comboTimer = COMBO_WINDOW_FRAMES
+    const comboMult = 1 + Math.min(this.combo, COMBO_MAX_MULT_STACK) * 0.1
+    this.onComboChange?.(this.combo, comboMult)
+    // 5콤보 단위 마일스톤 사운드
+    if (this.combo >= 5 && this.combo % 5 === 0) playSfx('combo')
+    // 피버 발동
+    if (this.combo >= FEVER_TRIGGER_COMBO && this.feverFrames <= 0 && this.feverCooldown <= 0) {
+      this.feverFrames = FEVER_FRAMES
+      this.onFeverChange?.(true)
+      playSfx('fever')
+      vibrate(HAPTIC.feverStart)
+    }
   }
 
   start() {
     if (this.running) return
     this.running = true
-    this._tick()
+    this._rafId = requestAnimationFrame(this._tick)
   }
 
   setPaused(paused) {
@@ -469,9 +595,13 @@ export class Engine {
   }
 
   _spawnBoss() {
+    // 남은 게이트 제거 — 얼어붙은 게이트가 보스로 가는 총알을 막는 버그 방지
+    this.gates.clearAll()
     this.boss = new Boss(this.scene)
     this._setPhase(PHASE.BOSS)
     this.onBossHpChange?.(this.boss.hp, BOSS.maxHp)
+    playSfx('bossWarn')
+    vibrate(HAPTIC.bossWarn)
   }
 
   // §3-3: 깨고 통과 → 효과 발동
@@ -489,6 +619,7 @@ export class Engine {
       this.floaters.spawn(r.position, `${delta}`, '#E53935', 1.2)
     }
     playSfx(r.correct ? 'correct' : 'wrong')
+    vibrate(r.correct ? HAPTIC.gateCorrect : HAPTIC.gateWrong)
     if (r.correct) {
       playSfx('recruit')
       this.player?.triggerCelebrate(600)
@@ -526,6 +657,7 @@ export class Engine {
     this.bursts.spawn(r.position, 0xff3030)
     this.floaters.spawn(r.position, `-${GATE_COLLISION_PENALTY}`, '#E53935')
     playSfx('wrong')
+    vibrate(HAPTIC.gateWrong)
     this.shake = 14   // 14프레임 흔들림
     this.onCountChange?.(this.crowd.count)
     this.onGateAnswer?.({ ...r, kind: 'collide' })
@@ -551,6 +683,7 @@ export class Engine {
     if (this._rafId) cancelAnimationFrame(this._rafId)
     window.removeEventListener('resize', this._onResize)
     this._teardownInput?.()
+    this.floaters?.dispose() // spawnBurst 지연 타이머가 죽은 씬에 스폰하는 것 차단
     this.renderer.dispose()
     this.scene.traverse((obj) => {
       if (obj.geometry) obj.geometry.dispose()

@@ -77,7 +77,7 @@ export class Boss {
   }
 
   // 보스도 환경 흐름엔 약하게만 영향(좌우 흔들). 자기 z는 유지.
-  update(envSpeed, leaderX, onPlayerHit) {
+  update(envSpeed, leaderX, onPlayerHit, leaderZ = 0) {
     const spr = this.mesh.userData.sprite
     if (!this.alive) {
       // 스프라이트 회전 + 추락
@@ -108,9 +108,9 @@ export class Boss {
       b.x += b.vx
       b.z += b.vz + envSpeed * 0.3
       b.mesh.position.set(b.x, b.y, b.z)
-      // 학생 leader (0, 0)과 충돌
+      // 학생 leader와 충돌 — 후퇴(leaderZ) 반영
       const dx = b.x - leaderX
-      const dz = b.z
+      const dz = b.z - leaderZ
       if (dx * dx + dz * dz <= BOSS.bulletHitRadius * BOSS.bulletHitRadius) {
         b.active = false
         b.mesh.visible = false

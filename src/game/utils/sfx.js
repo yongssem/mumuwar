@@ -122,6 +122,40 @@ const PLAYERS = {
     tone({ freq: 880,  freqEnd: 1760, type: 'sine', dur: 0.9, peak: 0.18, delay: 0.2 })
     tone({ freq: 1318, type: 'sine', dur: 0.4, peak: 0.16, delay: 0.6 })
   },
+  combo() {
+    // 콤보 마일스톤 — 밝은 상승 핑
+    tone({ freq: 1200, freqEnd: 1800, type: 'sine', dur: 0.12, peak: 0.22 })
+    tone({ freq: 2400, type: 'triangle', dur: 0.08, peak: 0.08, delay: 0.06 })
+  },
+  fever() {
+    // 피버 돌입 — 상승 스윕 + 아르페지오
+    noiseBurst({ dur: 0.3, peak: 0.1, lowpass: 4000, highpass: 400 })
+    tone({ freq: 440, freqEnd: 1760, type: 'sawtooth', dur: 0.45, peak: 0.16 })
+    tone({ freq: 523, type: 'sine', dur: 0.1, peak: 0.2, delay: 0.1 })
+    tone({ freq: 659, type: 'sine', dur: 0.1, peak: 0.2, delay: 0.2 })
+    tone({ freq: 784, type: 'sine', dur: 0.1, peak: 0.2, delay: 0.3 })
+    tone({ freq: 1047, type: 'sine', dur: 0.3, peak: 0.24, delay: 0.4 })
+  },
+  count() {
+    // 카운트다운 비프
+    tone({ freq: 800, type: 'square', dur: 0.1, peak: 0.15 })
+  },
+  go() {
+    // 출발! — 상승 화음
+    tone({ freq: 1047, type: 'square', dur: 0.25, peak: 0.2 })
+    tone({ freq: 1319, type: 'square', dur: 0.25, peak: 0.15, delay: 0.02 })
+    tone({ freq: 1568, type: 'sine', dur: 0.35, peak: 0.2, delay: 0.05 })
+  },
+  bossWarn() {
+    // 보스 경고 사이렌 — 낮은 톱니 2회
+    tone({ freq: 180, freqEnd: 420, type: 'sawtooth', dur: 0.35, peak: 0.2 })
+    tone({ freq: 180, freqEnd: 420, type: 'sawtooth', dur: 0.35, peak: 0.2, delay: 0.45 })
+    noiseBurst({ dur: 0.15, peak: 0.08, lowpass: 800, delay: 0.05 })
+  },
+  tick() {
+    // 시간 임박 틱
+    tone({ freq: 1000, type: 'square', dur: 0.04, peak: 0.12 })
+  },
 }
 
 export function playSfxProc(name) {
