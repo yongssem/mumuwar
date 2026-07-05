@@ -35,9 +35,21 @@ export class FloatingScorePool {
   constructor(scene) {
     this.scene = scene
     this.items = []
+    this.disposed = false
+  }
+
+  dispose() {
+    this.disposed = true
+    for (const it of this.items) {
+      this.scene.remove(it.sprite)
+      it.tex.dispose()
+      it.mat.dispose()
+    }
+    this.items = []
   }
 
   spawn(position, text, color = '#FFD700', scale = 1) {
+    if (this.disposed) return
     const tex = makeTextTexture(text, color, false)
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false })
     const sprite = new THREE.Sprite(mat)
@@ -57,6 +69,7 @@ export class FloatingScorePool {
 
   // 화면 가운데 메가 텍스트 (큰 보상 시) — 카메라 정면 좌표 사용
   spawnMega(position, text, color = '#FFD600') {
+    if (this.disposed) return
     const tex = makeTextTexture(text, color, true)
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false })
     const sprite = new THREE.Sprite(mat)
@@ -73,6 +86,7 @@ export class FloatingScorePool {
     for (let i = 0; i < capped; i++) {
       const delay = i * 50
       setTimeout(() => {
+        if (this.disposed) return // 엔진 dispose 후 늦게 도착한 타이머 무시
         const p = position.clone()
         p.x += (Math.random() - 0.5) * 2.2
         p.y += Math.random() * 0.6

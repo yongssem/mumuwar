@@ -6,16 +6,20 @@ function Stars({ filled, total = 3 }) {
   return <div className="result-stars">{items}</div>
 }
 
-export default function Clear({ stage, stageName, score, crowd, stars, correct, total, isNewHigh, onRetry, onHome }) {
+export default function Clear({ stage, stageName, score, crowd, stars, correct, total, isNewHigh, perfect, onRetry, onHome }) {
   const rate = total > 0 ? Math.round((correct / total) * 100) : 0
   return (
     <div className="modal-overlay">
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-6">
         <div className="result-screen result-clear w-full max-w-[440px]">
           <div className="modal-accent-top" />
 
           <h2 className="result-title">VICTORY</h2>
           <p className="result-stage">STAGE {String(stage).padStart(2, '0')} · {stageName}</p>
+
+          {perfect && (
+            <div className="perfect-badge">✨ PERFECT · 보너스 +300 ✨</div>
+          )}
 
           <Stars filled={stars} />
 

@@ -34,6 +34,10 @@ export default function GameCanvas() {
   const [time, setTime] = useState({ remain: null, total: null })
   const [result, setResult] = useState(null)
   const [paused, setPaused] = useState(false)
+  const [combo, setCombo] = useState({ count: 0, mult: 1 })
+  const [fever, setFever] = useState(false)
+  const [countdown, setCountdown] = useState(null) // 3|2|1|0(GO)|null
+  const [bossBanner, setBossBanner] = useState(false)
 
   useEffect(() => {
     if (screen !== 'play') return
@@ -62,16 +66,33 @@ export default function GameCanvas() {
       onTimeChange: (remain, total) => {
         setTime({ remain, total })
       },
+      onComboChange: (count, mult) => {
+        setCombo({ count, mult })
+      },
+      onFeverChange: (on) => {
+        setFever(on)
+      },
+      onCountdownChange: (sec) => {
+        setCountdown(sec)
+        if (sec === 0) setTimeout(() => setCountdown(null), 700)
+      },
       onPhaseChange: (p, snapshot) => {
         setPhase(p)
+        if (p === PHASE.BOSS) {
+          setBossBanner(true)
+          setTimeout(() => setBossBanner(false), 2200)
+        }
         if (p === PHASE.CLEAR || p === PHASE.GAMEOVER) {
           const cleared = p === PHASE.CLEAR
           // 최신 answers를 functional updater로 캡처
           setAnswers((current) => {
             const prev = loadProgress()
             const prevHigh = prev.highScore || 0
+            // 정답률 100% 클리어 = PERFECT 보너스 +300
+            const perfect = cleared && current.total > 0 && current.correct === current.total
+            const finalScore = snapshot.score + (perfect ? 300 : 0)
             const next = commitStageResult(grade, stage, {
-              score: snapshot.score,
+              score: finalScore,
               correct: current.correct,
               total: current.total,
               cleared,
@@ -80,12 +101,13 @@ export default function GameCanvas() {
             setProgress(next)
             setResult({
               cleared,
-              score: snapshot.score,
+              score: finalScore,
               crowd: snapshot.crowd,
               correct: current.correct,
               total: current.total,
               stars: calcStars(cleared, rate),
-              isNewHigh: snapshot.score > prevHigh,
+              isNewHigh: finalScore > prevHigh,
+              perfect,
             })
             return current
           })
@@ -112,6 +134,10 @@ export default function GameCanvas() {
     setTime({ remain: null, total: null })
     setResult(null)
     setPaused(false)
+    setCombo({ count: 0, mult: 1 })
+    setFever(false)
+    setCountdown(null)
+    setBossBanner(false)
     setRunKey((k) => k + 1)
   }, [])
 
@@ -248,6 +274,45 @@ export default function GameCanvas() {
             </div>
           )}
 
+          {/* 시작 카운트다운 — 3·2·1·GO */}
+          {countdown != null && (
+            <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
+              <div key={countdown} className={countdown === 0 ? 'countdown-num countdown-go' : 'countdown-num'}>
+                {countdown === 0 ? 'GO!' : countdown}
+              </div>
+            </div>
+          )}
+
+          {/* 콤보 카운터 — 2콤보부터 표시 */}
+          {combo.count >= 2 && !result && (
+            <div className="pointer-events-none fixed left-1/2 -translate-x-1/2 z-20 combo-wrap">
+              <div key={combo.count} className={['combo-counter', fever ? 'fever' : ''].join(' ')}>
+                <span className="combo-x">×</span>{combo.count}
+                <span className="combo-label">COMBO</span>
+                <span className="combo-mult">{combo.mult.toFixed(1)}배</span>
+              </div>
+            </div>
+          )}
+
+          {/* 피버 모드 — 골드 비네트 + 라벨 */}
+          {fever && !result && (
+            <>
+              <div className="pointer-events-none fixed inset-0 z-10 fever-vignette" />
+              <div className="pointer-events-none fixed top-[22%] left-1/2 -translate-x-1/2 z-20 fever-label">
+                🔥 FEVER ×2
+              </div>
+            </>
+          )}
+
+          {/* 보스 등장 경고 배너 */}
+          {bossBanner && (
+            <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
+              <div className="boss-warn-banner">
+                ⚠️ BOSS 등장 ⚠️
+              </div>
+            </div>
+          )}
+
           {showHint && (
             <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/60 text-white text-[11px] sm:text-[13px] animate-pulse pointer-events-none whitespace-nowrap">
               👉 정답 쪽으로 드래그
@@ -274,6 +339,7 @@ export default function GameCanvas() {
               correct={result.correct}
               total={result.total}
               isNewHigh={result.isNewHigh}
+              perfect={result.perfect}
               onRetry={retry}
               onHome={goHome}
             />

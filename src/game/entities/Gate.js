@@ -365,6 +365,16 @@ export class GateManager {
     return null
   }
 
+  // 보스전 진입 등 — 남은 게이트 전부 제거 (얼어붙은 게이트가 총알을 막는 버그 방지)
+  clearAll() {
+    for (const pair of this.pairs) {
+      this._dispose(pair.left)
+      this._dispose(pair.right)
+      this._dispose(pair.panel)
+    }
+    this.pairs = []
+  }
+
   _farthestZ() {
     let min = 0
     for (const p of this.pairs) if (p.z < min) min = p.z
