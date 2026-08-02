@@ -122,10 +122,7 @@ export default function StartScreen({
 
           <div className="modal-accent-bottom" />
         </div>
-
-        <footer className="game-footer" style={{ marginTop: 12 }}>
-          © 2026 <a href="https://mumuclass.kr" target="_blank" rel="noreferrer">무궁무진클래스</a> · 용쌤
-        </footer>
+        {/* 저작권 표기는 App.jsx의 전역 Footer가 담당 — 여기서 또 그리면 두 줄로 겹침 */}
       </div>
     </div>
   )
