@@ -38,7 +38,6 @@ export class Engine {
   constructor(canvas, {
     grade = 3,
     stage = 1,
-    nickname = '',
     training = {},
     onTacticalChange,
     onFirstInput,
@@ -57,7 +56,6 @@ export class Engine {
     this.canvas = canvas
     this.grade = grade
     this.stage = stage
-    this.nickname = nickname
     this.training = trainingStats(training)
     this.onTacticalChange = onTacticalChange
     this.stageDef = getStage(stage)
@@ -152,7 +150,7 @@ export class Engine {
     // §10-6
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
     this.camera.position.set(0, 9, 11)
-    this.camera.lookAt(0, 0, -3)
+    this.camera.lookAt(0, 0, -7)
   }
 
   _initLights() {
@@ -235,7 +233,7 @@ export class Engine {
   }
 
   _initPlayer() {
-    this.player = new Player(this.nickname || '용쌤')
+    this.player = new Player()
     this.scene.add(this.player.group)
   }
 
@@ -590,7 +588,7 @@ export class Engine {
       shakeY = (Math.random() - 0.5) * amp
       this.shake -= 1
     }
-    this.camera.lookAt(this.state.currentX * 0.25, shakeY, -3)
+    this.camera.lookAt(this.state.currentX * 0.25, shakeY, -7)
   }
 
   // 적 처치 → 콤보 스택 + 피버 발동 판정

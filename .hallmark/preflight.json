@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-22",
+  "scope": "Existing launch screen and combat HUD",
+  "framework": "React 18 + Vite 5 + vanilla Three.js",
+  "fonts": ["Pretendard", "JetBrains Mono"],
+  "palette": "Existing night-school navy and gold, mint progress",
+  "motion": "CSS transitions, reduced-motion supported",
+  "tokens": "src/styles/tokens.css and src/styles/combat.css",
+  "design": "design.md"
+}
