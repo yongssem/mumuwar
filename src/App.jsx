@@ -6,7 +6,7 @@ export default function App() {
     <>
       <GameCanvas />
       <div className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none">
-        <div className="pointer-events-auto bg-ddak-cream/80 backdrop-blur-sm">
+        <div className="app-footer-shell pointer-events-auto">
           <Footer />
         </div>
       </div>

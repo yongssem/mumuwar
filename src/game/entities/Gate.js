@@ -275,6 +275,8 @@ export class GateManager {
 
     const panel = buildProblemPanel(problem.question)
     panel.position.set(0, GATE_HEIGHT + 1.5, this.nextSpawnZ)
+    // 문제는 왼쪽 HUD에서 표시해 중앙의 두 보기를 가리지 않는다.
+    panel.visible = false
 
     this.scene.add(left)
     this.scene.add(right)

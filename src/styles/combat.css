@@ -1,0 +1,234 @@
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4
+ * Existing night-school palette; left mission rail and bottom squad dock. */
+:root {
+  --combat-panel: rgba(13, 17, 30, .92);
+  --combat-panel-soft: rgba(18, 23, 39, .85);
+  --combat-line: rgba(210, 222, 246, .16);
+  --combat-line-strong: rgba(255, 213, 79, .45);
+  --combat-ink: #f1f4fa;
+  --combat-muted: #aab6ca;
+  --combat-gold: #ffd56a;
+  --combat-gold-soft: rgba(255, 213, 106, .12);
+  --combat-mint: #85e4d0;
+  --combat-danger: #ff7f86;
+  --combat-danger-panel: rgba(89, 25, 38, .94);
+  --combat-shadow: 0 12px 36px rgba(0, 0, 0, .28);
+  --combat-deep-shade: rgba(7, 11, 23, .97);
+  --combat-clear: rgba(7, 11, 23, .12);
+  --combat-shadow-ink: rgba(0, 0, 0, .5);
+  --combat-button-ink: #191b24;
+  --combat-motion: 160ms ease-out;
+}
+
+.battle-bar, .combat-overlay, .battle-boss, .launch-screen { font-family: var(--font-pretendard); color: var(--combat-ink); }
+.battle-bar { position: fixed; z-index: 12; inset: 18px 24px auto; min-height: 70px; display: flex; align-items: center; gap: 24px; padding: 10px 16px 10px 10px; border: 1px solid var(--combat-line); border-radius: 16px; background: var(--combat-panel); box-shadow: var(--combat-shadow); }
+.battle-chapter { display: flex; align-items: center; gap: 12px; min-width: 190px; }
+.battle-chapter > b { display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid var(--combat-line-strong); border-radius: 12px; color: var(--combat-gold); background: var(--combat-gold-soft); font: 800 24px var(--font-mono); }
+.battle-chapter span { display: block; color: var(--combat-muted); font-size: 10px; letter-spacing: .1em; }
+.battle-chapter strong { display: block; font-size: 15px; margin-top: 3px; font-weight: 750; }
+.battle-stats { display: flex; gap: 36px; margin-left: auto; }
+.battle-stat { min-width: 76px; }
+.battle-stat > span { color: var(--combat-muted); font-size: 11px; display: block; }
+.battle-stat > strong { font: 700 21px var(--font-mono); display: block; margin-top: 2px; }
+.battle-stat:first-child > strong { color: var(--combat-gold); }
+.battle-stat small { color: var(--combat-muted); font: 400 10px var(--font-mono); margin-left: 7px; }
+.battle-controls { display: flex; align-items: center; gap: 18px; margin-left: 10px; padding-left: 24px; border-left: 1px solid var(--combat-line); }
+.battle-clock { min-width: 74px; }
+.battle-clock span { display: block; color: var(--combat-muted); font-size: 10px; }
+.battle-clock strong { font: 700 23px var(--font-mono); }
+.battle-clock.urgent strong { color: var(--combat-danger); }
+.battle-pause { width: 44px; height: 44px; display: grid; place-items: center; background: var(--combat-gold); color: var(--combat-button-ink); border-radius: 12px; font: 900 25px var(--font-mono); transition: transform var(--combat-motion), filter var(--combat-motion); }
+.battle-pause:hover, .launch-go:hover { filter: brightness(1.09); transform: translateY(-2px); }
+.battle-pause:active, .launch-go:active, .launch-grades button:active, .sound-switch:active { transform: scale(.97); }
+.battle-pause:focus-visible, .launch-go:focus-visible, .launch-grades button:focus-visible, .sound-switch:focus-visible { outline: 3px solid var(--combat-mint); outline-offset: 4px; }
+.combat-overlay { position: fixed; inset: 0; z-index: 11; }
+.battle-route { position: absolute; top: 108px; left: 26px; width: 252px; display: flex; align-items: center; gap: 9px; font-size: 10px; }
+.battle-route > span { color: var(--combat-muted); white-space: nowrap; }
+.battle-route > div { flex: 1; height: 4px; border-radius: 4px; background: var(--combat-line); overflow: hidden; }
+.battle-route i { display: block; height: 100%; background: var(--combat-mint); transition: width var(--combat-motion); }
+.battle-route > b { font-family: var(--font-mono); }
+.battle-route .route-goal { font-size: 8px; letter-spacing: .08em; }
+.question-rail { position: absolute; top: clamp(156px, 26vh, 250px); left: 24px; width: 254px; padding: 23px; background: var(--combat-panel); border: 1px solid var(--combat-line); border-left: 3px solid var(--combat-gold); border-radius: 3px 18px 18px 3px; box-shadow: var(--combat-shadow); }
+.question-eyebrow { display: flex; align-items: center; gap: 6px; color: var(--combat-gold); font: 600 9px var(--font-mono); letter-spacing: .14em; }
+.question-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--combat-gold); }
+.question-heading { display: block; margin: 14px 0 8px; color: var(--combat-muted); font-size: 13px; }
+.question-expression { display: block; font: 800 clamp(27px, 2.3vw, 38px)/1.35 var(--font-mono); color: var(--combat-ink); letter-spacing: -.07em; overflow-wrap: anywhere; min-width: 0; }
+.question-expression.question-long { font-size: 21px; line-height: 1.5; letter-spacing: -.03em; }
+.question-expression.question-medium { font-size: 32px; letter-spacing: -.07em; }
+.question-arrival { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0; margin-top: 14px; border-top: 1px solid var(--combat-line); border-bottom: 1px solid var(--combat-line); font-size: 11px; }
+.question-arrival span { color: var(--combat-muted); }
+.question-arrival b { font-weight: 700; color: var(--combat-gold); }
+.question-rail p { font-size: 12px; line-height: 1.8; color: var(--combat-muted); margin: 14px 0; }
+.question-controls { display: flex; align-items: center; gap: 5px; }
+.question-controls > span { display: grid; place-items: center; border: 1px solid var(--combat-line); border-radius: 5px; width: 23px; height: 22px; font-size: 12px; }
+.question-controls small { color: var(--combat-muted); font-size: 10px; margin-left: 4px; }
+.squad-dock { position: absolute; bottom: max(55px, calc(env(safe-area-inset-bottom) + 42px)); left: 50%; transform: translateX(-50%); width: min(548px, calc(100vw - 32px)); display: grid; grid-template-columns: 1.15fr .8fr 1.4fr; align-items: center; gap: 22px; padding: 16px 24px; border: 1px solid var(--combat-line); border-top: 2px solid var(--combat-line-strong); border-radius: 20px; background: var(--combat-panel); box-shadow: var(--combat-shadow); }
+.squad-population { display: flex; align-items: center; gap: 12px; }
+.squad-emblem { color: var(--combat-gold); width: 35px; flex-shrink: 0; }
+.squad-emblem svg { width: 100%; }
+.squad-population > div > span, .squad-power > span { display: block; font-size: 10px; color: var(--combat-muted); white-space: nowrap; }
+.squad-population strong { display: block; font: 800 36px/1.15 var(--font-mono); color: var(--combat-gold); }
+.squad-population strong small { font: 500 11px var(--font-pretendard); margin-left: 5px; }
+.squad-power { border-left: 1px solid var(--combat-line); padding-left: 22px; }
+.squad-power strong { display: block; font: 700 27px var(--font-mono); }
+.squad-power small { display: block; font: 400 8px var(--font-mono); letter-spacing: .08em; color: var(--combat-muted); }
+.squad-fever > div:first-child { display: flex; justify-content: space-between; font-size: 10px; gap: 6px; }
+.squad-fever b { color: var(--combat-mint); font-family: var(--font-mono); }
+.fever-track { height: 6px; background: var(--combat-line); overflow: hidden; border-radius: 4px; margin: 8px 0; }
+.fever-track i { height: 100%; display: block; background: var(--combat-mint); transition: width var(--combat-motion); }
+.squad-fever > small { display: block; font-size: 9px; color: var(--combat-muted); }
+.fever-on { border-top-color: var(--combat-gold); }
+.fever-on .fever-track i { background: var(--combat-gold); }
+.combat-warning { position: absolute; bottom: 170px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: var(--combat-danger-panel); border: 1px solid var(--combat-danger); border-radius: 12px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.combat-warning > b { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; color: var(--combat-button-ink); background: var(--combat-danger); }
+.battle-boss { position: fixed; top: 108px; left: 50%; transform: translateX(-50%); z-index: 12; width: min(330px, 35vw); padding: 10px 14px; background: var(--combat-panel); border: 1px solid var(--combat-line); border-radius: 10px; }
+.battle-boss > div:first-child { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; margin-bottom: 6px; }
+.battle-boss b { font-family: var(--font-mono); color: var(--combat-danger); }
+.battle-boss > div:last-child { background: var(--combat-line); height: 5px; overflow: hidden; border-radius: 4px; }
+.battle-boss i { display: block; height: 100%; background: var(--combat-danger); }
+.battle-combo { position: fixed; right: 28px; bottom: 60px; z-index: 12; }
+.battle-combo .combo-counter { font-size: 30px; }
+.battle-input-hint { position: fixed; right: 25px; bottom: 160px; z-index: 11; color: var(--combat-muted); font-size: 11px; padding: 8px 12px; border: 1px solid var(--combat-line); border-radius: 8px; background: var(--combat-panel-soft); max-width: 250px; }
+.battle-weapon-toast, .battle-fever-tag { position: fixed; right: 24px; top: 152px; z-index: 13; max-width: 245px; padding: 12px 16px; color: var(--combat-mint); background: var(--combat-panel); border: 1px solid var(--combat-line); border-radius: 12px; font: 700 13px/1.6 var(--font-pretendard); }
+.battle-fever-tag { top: 106px; color: var(--combat-gold); padding: 8px 14px; font-family: var(--font-mono); }
+
+.launch-screen { position: fixed; inset: 0; z-index: 30; overflow-y: auto; background: var(--bg-primary); }
+.launch-backdrop, .launch-shade { position: fixed; inset: 0; pointer-events: none; }
+.launch-backdrop { background: url('/assets/images/landing-bg.png') 65% center / cover; }
+.launch-shade { background: linear-gradient(90deg, var(--combat-deep-shade) 5%, var(--combat-panel-soft) 45%, var(--combat-clear) 100%); }
+.launch-brand { position: absolute; top: 28px; left: clamp(24px, 5vw, 80px); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--combat-line-strong); border-radius: 9px; color: var(--combat-gold); }
+.launch-brand small { display: block; font: 400 8px var(--font-mono); letter-spacing: .2em; color: var(--combat-muted); margin-top: 2px; }
+.sound-switch { position: absolute; right: 28px; top: 28px; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--combat-line); border-radius: 24px; background: var(--combat-panel); color: var(--combat-gold); font-size: 18px; }
+.sound-switch span { font-size: 10px; color: var(--combat-ink); white-space: nowrap; }
+.launch-panel { position: relative; width: min(490px, calc(100% - 48px)); margin: max(110px, 15vh) 0 70px clamp(24px, 5vw, 80px); }
+.launch-kicker { display: flex; align-items: center; gap: 7px; color: var(--combat-mint); font-size: 12px; letter-spacing: .04em; }
+.launch-kicker i { width: 5px; height: 5px; border-radius: 50%; background: var(--combat-mint); }
+.launch-panel h1 { font-size: clamp(38px, 4.8vw, 64px); letter-spacing: -.07em; font-weight: 900; line-height: 1.12; margin: 18px 0; min-width: 0; overflow-wrap: anywhere; text-shadow: 0 3px 18px var(--combat-shadow-ink); }
+.launch-panel h1 > span { color: var(--combat-gold); }
+.launch-panel h1 > small { display: block; font: 500 11px var(--font-mono); letter-spacing: .4em; margin-top: 12px; color: var(--combat-muted); }
+.launch-panel > p { color: var(--combat-muted); font-size: 15px; line-height: 1.7; margin: 20px 0 30px; }
+.launch-prep { padding: 22px; border: 1px solid var(--combat-line); border-radius: 20px; background: var(--combat-panel); box-shadow: var(--combat-shadow); }
+.launch-prep-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 14px; }
+.launch-prep-heading label { font-weight: 700; }
+.launch-prep-heading > span { font-size: 10px; color: var(--combat-muted); }
+.launch-grades { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; }
+.launch-grades button { display: flex; justify-content: center; align-items: baseline; gap: 3px; padding: 13px 0; border-radius: 9px; border: 1px solid var(--combat-line); background: var(--combat-panel-soft); white-space: nowrap; transition: border-color var(--combat-motion), transform var(--combat-motion); }
+.launch-grades strong { font: 700 22px var(--font-mono); }
+.launch-grades span { color: var(--combat-muted); font-size: 9px; }
+.launch-grades button.selected { color: var(--combat-gold); border-color: var(--combat-gold); background: var(--combat-gold-soft); }
+.launch-grades button:hover { border-color: var(--combat-gold); }
+.launch-go { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; margin-top: 18px; border-radius: 12px; background: var(--combat-gold); color: var(--combat-button-ink); text-align: left; font-size: 20px; font-weight: 800; transition: transform var(--combat-motion), filter var(--combat-motion); }
+.launch-go span { white-space: nowrap; }
+.launch-go small { display: block; font-size: 10px; font-weight: 500; margin-top: 2px; }
+.launch-go > b { font-size: 28px; }
+.launch-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; color: var(--combat-muted); font-size: 10px; }
+.launch-meta b { color: var(--combat-ink); font-family: var(--font-mono); margin-left: 4px; }
+.app-footer-shell { background: var(--combat-panel); border-top: 1px solid var(--combat-line); }
+.app-footer { padding: 8px 12px; text-align: center; font: 400 10px var(--font-pretendard); color: var(--combat-muted); }
+
+@media (max-width: 1000px) {
+  .battle-bar { gap: 12px; inset: 12px 16px auto; padding: 8px 10px; min-height: 62px; }
+  .battle-chapter { min-width: 160px; gap: 8px; }
+  .battle-chapter > b { width: 40px; height: 40px; font-size: 20px; }
+  .battle-chapter strong { font-size: 12px; }
+  .battle-stats { gap: 18px; }
+  .battle-stat { min-width: 60px; }
+  .battle-stat > strong { font-size: 18px; }
+  .battle-controls { gap: 10px; padding-left: 14px; margin-left: 0; }
+  .battle-clock { min-width: 62px; }
+  .question-rail { left: 16px; width: 202px; padding: 17px; top: max(134px, 27vh); }
+  .question-expression { font-size: 29px; }
+  .question-expression.question-medium { font-size: 24px; }
+  .battle-route { left: 18px; top: 94px; width: 200px; }
+  .battle-boss { top: 94px; }
+}
+@media (max-width: 640px) {
+  .battle-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; inset: 10px 10px auto; padding: 8px 10px; border-radius: 12px; }
+  .battle-chapter { min-width: 0; gap: 7px; }
+  .battle-chapter > b { width: 31px; height: 31px; font-size: 16px; border-radius: 7px; }
+  .battle-chapter span { font-size: 8px; }
+  .battle-chapter strong { font-size: 11px; margin-top: 1px; }
+  .battle-stats { grid-row: 2; grid-column: 1 / -1; margin: 0; justify-content: space-between; gap: 8px; padding-top: 7px; border-top: 1px solid var(--combat-line); }
+  .battle-stat { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .battle-stat > span { font-size: 9px; }
+  .battle-stat > strong { font-size: 13px; margin: 0; }
+  .battle-stat small { font-size: 8px; margin-left: 4px; }
+  .weapon-stat > span { display: none; }
+  .battle-controls { grid-column: 2; grid-row: 1; border: 0; padding: 0; gap: 8px; }
+  .battle-clock { min-width: 40px; }
+  .battle-clock > span { display: none; }
+  .battle-clock strong { font-size: 16px; }
+  .battle-pause { width: 32px; height: 32px; border-radius: 8px; font-size: 19px; }
+  .battle-route { left: 12px; top: 108px; width: min(220px, calc(100vw - 28px)); }
+  .question-rail { top: 132px; left: 10px; width: 148px; padding: 10px; border-radius: 3px 12px 12px 3px; }
+  .question-eyebrow { font-size: 7px; gap: 4px; letter-spacing: .09em; }
+  .question-heading, .question-arrival { display: none; }
+  .question-expression { font-size: 23px; margin-top: 6px; }
+  .question-expression.question-medium { font-size: 18px; }
+  .question-expression.question-long { font-size: 15px; }
+  .question-arrival { margin-top: 8px; padding: 7px 0 0; border-bottom: 0; font-size: 9px; }
+  .question-rail p, .question-controls { display: none; }
+  .squad-dock { padding: 12px 14px; gap: 12px; width: calc(100vw - 20px); bottom: max(47px, calc(env(safe-area-inset-bottom) + 38px)); border-radius: 15px; grid-template-columns: 1fr .65fr 1.2fr; }
+  .squad-population { gap: 7px; }
+  .squad-emblem { width: 25px; }
+  .squad-population > div > span, .squad-power > span { font-size: 8px; }
+  .squad-population strong { font-size: 28px; }
+  .squad-power { padding-left: 12px; }
+  .squad-power strong { font-size: 21px; }
+  .squad-fever > div:first-child { font-size: 9px; }
+  .squad-fever > small { display: none; }
+  .battle-boss { top: 106px; right: 12px; left: auto; transform: none; width: 145px; padding: 8px; }
+  .battle-boss > div:first-child { font-size: 8px; }
+  .battle-boss b { display: none; }
+  .battle-combo { right: 14px; bottom: 140px; }
+  .battle-combo .combo-counter { font-size: 25px; }
+  .battle-input-hint { display: none; }
+  .combat-warning { bottom: 144px; padding: 9px 10px; gap: 6px; font-size: 10px; }
+  .battle-weapon-toast, .battle-fever-tag { right: 10px; max-width: calc(50vw - 20px); padding: 8px; top: 174px; font-size: 10px; }
+  .battle-fever-tag { top: 132px; }
+  .launch-shade { background: linear-gradient(0deg, var(--combat-deep-shade) 5%, var(--combat-panel-soft) 65%, var(--combat-clear)); }
+  .launch-brand { left: 20px; top: 20px; font-size: 11px; }
+  .sound-switch { top: 20px; right: 20px; padding: 6px 9px; }
+  .sound-switch span { font-size: 8px; }
+  .launch-panel { margin: max(112px, 18vh) auto 65px; width: calc(100% - 36px); }
+  .launch-panel h1 { font-size: 43px; }
+  .launch-panel > p { font-size: 13px; margin: 16px 0 23px; }
+  .launch-prep { padding: 16px; }
+  .launch-prep-heading { display: block; }
+  .launch-prep-heading > span { display: block; margin-top: 3px; }
+  .launch-grades { gap: 4px; }
+  .launch-grades button { padding: 11px 0; gap: 1px; }
+  .launch-grades strong { font-size: 18px; }
+  .launch-grades span { font-size: 8px; }
+  .launch-meta { font-size: 9px; }
+}
+@media (max-height: 540px) and (min-width: 641px) {
+  .battle-bar { inset: 8px 12px auto; min-height: 54px; padding: 6px 8px; border-radius: 12px; }
+  .battle-chapter > b { width: 36px; height: 36px; }
+  .battle-route { top: 77px; left: 16px; width: 178px; }
+  .question-rail { top: 108px; left: 12px; width: 182px; padding: 13px 16px; }
+  .question-expression { font-size: 25px; }
+  .question-expression.question-medium { font-size: 21px; }
+  .question-heading { margin: 9px 0 5px; }
+  .question-arrival { margin-top: 9px; padding: 8px 0 0; border-bottom: 0; }
+  .question-rail p, .question-controls { display: none; }
+  .squad-dock { bottom: 43px; width: 380px; padding: 9px 17px; gap: 16px; border-radius: 14px; }
+  .squad-population strong { font-size: 25px; }
+  .squad-emblem { width: 26px; }
+  .squad-power strong { font-size: 21px; }
+  .squad-power { padding-left: 16px; }
+  .squad-fever > small { display: none; }
+  .battle-combo { bottom: 47px; right: 16px; }
+  .battle-combo .combo-counter { font-size: 24px; }
+  .battle-input-hint { bottom: 120px; font-size: 9px; }
+  .battle-boss { top: 76px; padding: 8px 12px; }
+  .combat-warning { bottom: 122px; padding: 8px 12px; font-size: 11px; }
+  .launch-panel { width: min(460px, 60vw); margin-top: 88px; }
+  .launch-panel h1 { font-size: 38px; }
+  .launch-panel > p { font-size: 12px; margin: 14px 0; }
+  .launch-prep { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-pause, .launch-go, .launch-grades button, .battle-route i, .fever-track i { transition: none; }
+}

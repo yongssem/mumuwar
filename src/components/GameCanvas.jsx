@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Engine, PHASE } from '../game/Engine.js'
-import { buyTraining, commitStageResult, loadProgress, setGrade as saveGrade, setNickname as saveNickname, calcStars, setSoundEnabled } from '../lib/storage.js'
+import { buyTraining, commitStageResult, loadProgress, setGrade as saveGrade, calcStars, setSoundEnabled } from '../lib/storage.js'
 import TacticalHUD from './TacticalHUD.jsx'
 import { earnedCoins } from '../game/training.js'
 import { playBgm, stopBgm, setMuted } from '../game/utils/audio.js'
@@ -19,7 +19,6 @@ export default function GameCanvas() {
 
   const [progress, setProgress] = useState(() => loadProgress())
   const [grade, setGrade] = useState(progress.grade || 3)
-  const [nickname, setNickname] = useState(progress.nickname || '')
   const [soundOn, setSoundOn] = useState(progress.settings?.sound !== false)
   const [screen, setScreen] = useState('start') // 'start' | 'stageSelect' | 'play'
   const [stage, setStage] = useState(1)
@@ -51,7 +50,6 @@ export default function GameCanvas() {
     const engine = new Engine(canvasRef.current, {
       grade,
       stage,
-      nickname,
       training: loadProgress().training,
       onTacticalChange: setTactical,
       onFirstInput: () => setShowHint(false),
@@ -152,11 +150,8 @@ export default function GameCanvas() {
     setRunKey((k) => k + 1)
   }, [])
 
-  const handleStart = useCallback((name) => {
-    saveGrade(grade)
-    const saved = saveNickname(name)
-    setNickname(saved.nickname)
-    setProgress(saved)
+  const handleStart = useCallback(() => {
+    setProgress(saveGrade(grade))
     setScreen('stageSelect')
   }, [grade])
 
@@ -268,7 +263,6 @@ export default function GameCanvas() {
       {screen === 'play' && (
         <>
           <HUD
-            nickname={nickname}
             grade={grade}
             score={score}
             count={count}
@@ -290,7 +284,7 @@ export default function GameCanvas() {
 
           {weaponToast && (
             <div key={weaponToast.id}
-                 className="pointer-events-none fixed top-1/3 left-1/2 -translate-x-1/2 z-20 px-4 py-2 sm:px-6 sm:py-3 rounded-2xl bg-ddak-accent text-white text-sm sm:text-xl font-bold shadow-2xl animate-bounce max-w-[90vw] text-center">
+                 className="battle-weapon-toast pointer-events-none">
               ⚡ 무기 업그레이드! {weaponToast.text}
             </div>
           )}
@@ -306,7 +300,7 @@ export default function GameCanvas() {
 
           {/* 콤보 카운터 — 2콤보부터 표시 */}
           {combo.count >= 2 && !result && (
-            <div className="pointer-events-none fixed left-1/2 -translate-x-1/2 z-20 combo-wrap">
+            <div className="battle-combo pointer-events-none">
               <div key={combo.count} className={['combo-counter', fever ? 'fever' : ''].join(' ')}>
                 <span className="combo-x">×</span>{combo.count}
                 <span className="combo-label">COMBO</span>
@@ -319,7 +313,7 @@ export default function GameCanvas() {
           {fever && !result && (
             <>
               <div className="pointer-events-none fixed inset-0 z-10 fever-vignette" />
-              <div className="pointer-events-none fixed top-[22%] left-1/2 -translate-x-1/2 z-20 fever-label">
+              <div className="battle-fever-tag pointer-events-none">
                 🔥 FEVER ×2
               </div>
             </>
@@ -335,7 +329,7 @@ export default function GameCanvas() {
           )}
 
           {showHint && (
-            <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/60 text-white text-[11px] sm:text-[13px] animate-pulse pointer-events-none whitespace-nowrap">
+            <div className="battle-input-hint pointer-events-none">
               👉 드래그 / 방향키·WASD 이동 · 아래로 후퇴
             </div>
           )}
@@ -376,7 +370,6 @@ export default function GameCanvas() {
           selectedGrade={grade}
           highScore={progress.highScore || 0}
           soundOn={soundOn}
-          nickname={nickname}
           onToggleSound={toggleSound}
           onPick={setGrade}
           onStart={handleStart}
