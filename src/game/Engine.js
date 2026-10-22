@@ -1,5 +1,6 @@
 import * as THREE from 'three'
-import { ROAD_WIDTH, ROAD_LENGTH, PLAYER_SMOOTH, COLORS, GATE_BASE_REWARD, GATE_BASE_PENALTY, getGradeSpeed } from './config.js'
+import { StreetEnvironment } from './StreetEnvironment.js'
+import { ROAD_WIDTH, PLAYER_SMOOTH, GATE_BASE_REWARD, GATE_BASE_PENALTY, getGradeSpeed } from './config.js'
 import { Crowd } from './entities/Crowd.js'
 import { Player } from './entities/Player.js'
 import { GateManager, GATE_COLLISION_PENALTY } from './entities/Gate.js'
@@ -93,8 +94,6 @@ export class Engine {
     this._lastTime = 0
     this._acc = 0
     this.state = { speed: getGradeSpeed(grade), targetX: 0, currentX: 0, targetZ: 0, currentZ: 0 }
-    this.dashes = []
-    this.trees = []
     this.running = false
     this.paused = false
 
@@ -105,7 +104,6 @@ export class Engine {
     this._initCrowd()
     this.crowd.setCount(this.training.friends)
     this._initPlayer()
-    this._initTrees()
     this.applyStageTheme()
     this.gates = new GateManager(this.scene, { grade, stage })
     this.bursts = new BurstPool(this.scene)
@@ -145,7 +143,7 @@ export class Engine {
     this.scene.background = null
     // 안개는 유지: 멀리 가는 적/게이트가 배경으로 자연스럽게 페이드.
     //  · 색은 학원가 야경 톤(다크 인디고) 고정 — 단일 bg 이미지에 맞춤
-    this.scene.fog = new THREE.Fog(0x1A1840, 25, 50)
+    this.scene.fog = new THREE.Fog(0x182233, 28, 74)
 
     // §10-6
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
@@ -170,60 +168,25 @@ export class Engine {
     const keyFill = new THREE.PointLight(0xFFE0B2, 0.55, 18)
     keyFill.position.set(0, 6, 4)
     this.scene.add(keyFill)
-    // 시안 분위기등 — 게이트/총알 강조
-    const cyanFill = new THREE.PointLight(0x00BCD4, 0.5, 30)
+    // 부드러운 푸른 보조등으로 도로와 게이트의 색감을 연결한다.
+    const cyanFill = new THREE.PointLight(0x90B8DC, 0.22, 30)
     cyanFill.position.set(0, 8, -10)
     this.scene.add(cyanFill)
 
-    // Phase 8.8: 길 위쪽으로 골드 톤 "가로등" 라인 — 도로만 밝히고
-    // 풀밭/숲은 다크 톤 유지. 멀리서 오는 적의 윤곽이 잡힘.
+    // 가까운 가로등 두 곳만 실제 조명을 사용하고 나머지는 밝은 면과 바닥 빛으로 표현한다.
     this.pathLights = []
-    for (let z = 0; z >= -90; z -= 18) {
-      const light = new THREE.PointLight(0xFFD180, 0.85, 16, 1.6)
-      light.position.set(0, 6, z)
+    for (const [x, z] of [[-4.6, -8], [4.6, -30]]) {
+      const light = new THREE.PointLight(0xFFD6A0, 2.2, 24, 1.6)
+      light.position.set(x, 4, z)
       this.scene.add(light)
       this.pathLights.push(light)
     }
   }
 
   _initRoad() {
-    // Phase 8.8: 도로 자체 발광 강화 — 멀리까지 길이 보이도록
-    this.road = new THREE.Mesh(
-      new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
-      new THREE.MeshStandardMaterial({
-        color: COLORS.road,
-        emissive: COLORS.roadEmissive,
-        emissiveIntensity: 0.45,
-        roughness: 0.7,
-      }),
-    )
-    this.road.rotation.x = -Math.PI / 2
-    this.road.receiveShadow = true
-    this.scene.add(this.road)
-
-    this.grass = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, ROAD_LENGTH),
-      new THREE.MeshStandardMaterial({ color: COLORS.grass, roughness: 1 }),
-    )
-    this.grass.rotation.x = -Math.PI / 2
-    this.grass.position.y = -0.01
-    this.grass.receiveShadow = true
-    this.scene.add(this.grass)
-
-    // Phase 8.8: 차선 발광 — 길 라인이 어둠 속에서 빛남
-    const dashGeo = new THREE.PlaneGeometry(0.2, 1.5)
-    const dashMat = new THREE.MeshStandardMaterial({
-      color: COLORS.laneDash,
-      emissive: COLORS.laneDash,
-      emissiveIntensity: 0.9,
-    })
-    for (let i = -90; i < 90; i += 4) {
-      const dash = new THREE.Mesh(dashGeo, dashMat)
-      dash.rotation.x = -Math.PI / 2
-      dash.position.set(0, 0.01, i)
-      this.scene.add(dash)
-      this.dashes.push(dash)
-    }
+    this.environment = new StreetEnvironment(this.scene, getTheme(this.stage))
+    this.road = this.environment.road
+    this.grass = this.environment.ground
   }
 
   _initCrowd() {
@@ -239,57 +202,14 @@ export class Engine {
 
   applyStageTheme() {
     const t = getTheme(this.stage)
-    // Phase 8.15: scene.background는 CSS가 처리 — 여기서 갱신하지 않음
-    // fog 색도 단일 bg 이미지에 맞춰 고정 (near/far만 테마 반영)
+    // 원경 이미지와 도로가 같은 야간 색조로 이어지도록 안개를 조정한다.
     if (this.scene.fog) {
+      this.scene.fog.color.set(t.bg)
       this.scene.fog.near = t.fogNear
       this.scene.fog.far = t.fogFar
     }
     this.road?.material?.color.set(t.road)
     this.grass?.material?.color.set(t.grass)
-  }
-
-  _initTrees() {
-    // Phase 8.7: 다크 퍼플 기둥 + 시안 발광 잎 (야간 숲 톤)
-    const trunkMat = new THREE.MeshStandardMaterial({
-      color: COLORS.trunk,
-      emissive: COLORS.trunk,
-      emissiveIntensity: 0.15,
-      roughness: 0.7,
-    })
-    const leafMat = new THREE.MeshStandardMaterial({
-      color: COLORS.leaf,
-      emissive: COLORS.leafEmissive,
-      emissiveIntensity: 0.35,
-      roughness: 0.5,
-    })
-    for (let i = 0; i < 30; i++) {
-      const tree = new THREE.Group()
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.3, 1, 8),
-        trunkMat,
-      )
-      trunk.position.y = 0.5
-      trunk.castShadow = true
-      tree.add(trunk)
-
-      const leaf = new THREE.Mesh(
-        new THREE.ConeGeometry(0.8, 1.8, 8),
-        leafMat,
-      )
-      leaf.position.y = 1.9
-      leaf.castShadow = true
-      tree.add(leaf)
-
-      const side = Math.random() > 0.5 ? 1 : -1
-      tree.position.set(
-        side * (ROAD_WIDTH / 2 + 2 + Math.random() * 8),
-        0,
-        -i * 8 - Math.random() * 4,
-      )
-      this.scene.add(tree)
-      this.trees.push(tree)
-    }
   }
 
   _onResize() {
@@ -557,20 +477,7 @@ export class Engine {
       if (this.clearDelay === 0) this._setPhase(PHASE.CLEAR)
     }
 
-    for (const tree of this.trees) {
-      tree.position.z += this.state.speed
-      if (tree.position.z > 15) {
-        tree.position.z -= 250
-        const side = Math.random() > 0.5 ? 1 : -1
-        tree.position.x = side * (ROAD_WIDTH / 2 + 2 + Math.random() * 8)
-      }
-    }
-
-    for (const dash of this.dashes) {
-      dash.position.z += this.state.speed
-      if (dash.position.z > 10) dash.position.z -= 184
-    }
-
+    this.environment.update(this.state.speed)
     this._updateCamera()
   }
 
@@ -711,6 +618,7 @@ export class Engine {
     window.removeEventListener('resize', this._onResize)
     this._teardownInput?.()
     this.floaters?.dispose() // spawnBurst 지연 타이머가 죽은 씬에 스폰하는 것 차단
+    this.environment?.dispose()
     this.renderer.dispose()
     this.scene.traverse((obj) => {
       if (obj.geometry) obj.geometry.dispose()

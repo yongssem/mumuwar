@@ -63,46 +63,29 @@ export class Player {
   //  · 세로 stretch = 1 + sin(walkPhase·2) * 0.02 (사뿐사뿐)
   //  · 후퇴/celebrate 중에는 정지
   update(isRetreating = false) {
-    // celebrate 중이면 점프 곡선이 모든 기본 모션을 덮어씀
-    if (this.celebrating) {
-      const elapsed = performance.now() - this.celebrateStartTime
-      const t = elapsed / this.celebrateDuration
-      if (t < 1) {
-        // sin(π·t): 0 → 1 → 0 형태의 점프 호
-        this.sprite.position.y = this.baseY + Math.sin(t * Math.PI) * 0.6
-        return
-      }
-      // 종료 — idle 복귀, 걷기 잔여 상태도 리셋
-      this.celebrating = false
-      this.sprite.position.y = this.baseY
-      this.sprite.material = this.idleMaterial
-      this.idleMaterial.rotation = 0
-      this.sprite.scale.set(this.baseScaleX, this.baseScaleY, 1)
-      this.walkPhase = 0
-    }
+    // celebrate 중이면 점프 곡선이 모든 …2141 tokens truncated…L', count: 3 },
+        { type: 'ZOMBIE', count: 2 },
+      ], hasBoss: true,
+        difficulty: { spawnInterval: 0.7, spawnCount: 5, hpMul: 5.0, speedMul: 1.50, eliteRate: 0.50, bossRate: 0.10 } },
+}
 
-    if (isRetreating) {
-      // 후퇴 중: 정지 자세
-      this.sprite.position.y = this.baseY
-      this.sprite.material.rotation = 0
-      this.sprite.scale.set(this.baseScaleX, this.baseScaleY, 1)
-      this.shadow.scale.setScalar(1)
-      return
-    }
+// 안전 기본값 (구버전 스테이지 데이터 호환)
+export const DEFAULT_DIFFICULTY = {
+  spawnInterval: 1.0,
+  spawnCount: 1,
+  hpMul: 1.0,
+  speedMul: 1.0,
+  eliteRate: 0,
+  bossRate: 0,
+}
 
-    // 평소 걷기 — 한 걸음 ≈ 0.35초 (walkPhase += 0.18 @60fps)
-    this.walkPhase += 0.18
-    const w = this.walkPhase
-    const walkY = Math.sin(w) * 0.08
-    const tilt = Math.sin(w) * 0.05
-    const stretch = Math.sin(w * 2) * 0.02
+export const STAGE_COUNT = 10
 
-    this.sprite.position.y = this.baseY + walkY
-    this.sprite.material.rotation = tilt
-    this.sprite.scale.set(this.baseScaleX, this.baseScaleY * (1 + stretch), 1)
+export function getStage(stage) {
+  return STAGES[stage] || STAGES[1]
+}
 
-    // 그림자: 떠올랐을 때만 살짝 작아짐 (양수 heightRatio만 적용)
-    const heightRatio = Math.max(0, walkY / 0.08)
-    this.shadow.scale.setScalar(1.0 - heightRatio * 0.05)
-  }
+export function getTheme(stage) {
+  const def = getStage(stage)
+  return THEMES[def.theme] || THEMES.ACADEMY
 }
