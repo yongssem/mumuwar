@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Engine, PHASE } from '../game/Engine.js'
-import { commitStageResult, loadProgress, setGrade as saveGrade, setNickname as saveNickname, calcStars, setSoundEnabled } from '../lib/storage.js'
+import { buyTraining, commitStageResult, loadProgress, setGrade as saveGrade, setNickname as saveNickname, calcStars, setSoundEnabled } from '../lib/storage.js'
+import TacticalHUD from './TacticalHUD.jsx'
+import { earnedCoins } from '../game/training.js'
 import { playBgm, stopBgm, setMuted } from '../game/utils/audio.js'
 import HUD from './HUD.jsx'
 import Clear from './Clear.jsx'
@@ -38,22 +40,27 @@ export default function GameCanvas() {
   const [fever, setFever] = useState(false)
   const [countdown, setCountdown] = useState(null) // 3|2|1|0(GO)|null
   const [bossBanner, setBossBanner] = useState(false)
+  const [tactical, setTactical] = useState({})
 
   useEffect(() => {
     if (screen !== 'play') return
+    let runAnswers = { correct: 0, total: 0 }
+    let committed = false
+    const timers = []
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms))
     const engine = new Engine(canvasRef.current, {
       grade,
       stage,
       nickname,
+      training: loadProgress().training,
+      onTacticalChange: setTactical,
       onFirstInput: () => setShowHint(false),
       onCountChange: (n) => setCount(n),
       onScoreChange: (s) => setScore(s),
       onBossHpChange: (hp, max) => setBoss({ hp, max }),
       onGateAnswer: (r) => {
-        setAnswers((prev) => ({
-          correct: prev.correct + (r.correct ? 1 : 0),
-          total: prev.total + 1,
-        }))
+        runAnswers = { correct: runAnswers.correct + (r.correct && r.kind === 'pass' ? 1 : 0), total: runAnswers.total + 1 }
+        setAnswers(runAnswers)
       },
       onWeaponChange: (lv) => {
         setWeapon((prev) => ({ lv, streak: 0 }))
@@ -74,18 +81,20 @@ export default function GameCanvas() {
       },
       onCountdownChange: (sec) => {
         setCountdown(sec)
-        if (sec === 0) setTimeout(() => setCountdown(null), 700)
+        if (sec === 0) later(() => setCountdown(null), 700)
       },
       onPhaseChange: (p, snapshot) => {
         setPhase(p)
         if (p === PHASE.BOSS) {
           setBossBanner(true)
-          setTimeout(() => setBossBanner(false), 2200)
+          later(() => setBossBanner(false), 2200)
         }
-        if (p === PHASE.CLEAR || p === PHASE.GAMEOVER) {
+        if (!committed && (p === PHASE.CLEAR || p === PHASE.GAMEOVER)) {
+          committed = true
           const cleared = p === PHASE.CLEAR
-          // 최신 answers를 functional updater로 캡처
-          setAnswers((current) => {
+          // 보상 저장은 React updater 밖에서 실행해 StrictMode 중복 지급을 막는다.
+          {
+            const current = runAnswers
             const prev = loadProgress()
             const prevHigh = prev.highScore || 0
             // 정답률 100% 클리어 = PERFECT 보너스 +300
@@ -108,9 +117,9 @@ export default function GameCanvas() {
               stars: calcStars(cleared, rate),
               isNewHigh: finalScore > prevHigh,
               perfect,
+              coins: earnedCoins({ score: finalScore, correct: current.correct, cleared }),
             })
-            return current
-          })
+          }
         }
       },
     })
@@ -118,6 +127,7 @@ export default function GameCanvas() {
     engine.start()
     return () => {
       engine.dispose()
+      timers.forEach(clearTimeout)
       engineRef.current = null
     }
   }, [runKey, screen, grade, stage])
@@ -138,6 +148,7 @@ export default function GameCanvas() {
     setFever(false)
     setCountdown(null)
     setBossBanner(false)
+    setTactical({})
     setRunKey((k) => k + 1)
   }, [])
 
@@ -176,6 +187,13 @@ export default function GameCanvas() {
   }, [])
 
   const resumeGame = useCallback(() => setPaused(false), [])
+
+  useEffect(() => {
+    if (screen !== 'play' || result) return
+    const hide = () => { if (document.hidden) setPaused(true) }
+    document.addEventListener('visibilitychange', hide)
+    return () => document.removeEventListener('visibilitychange', hide)
+  }, [screen, result])
 
   const retryFromPause = useCallback(() => {
     setPaused(false)
@@ -267,6 +285,9 @@ export default function GameCanvas() {
             onTogglePause={(!result && phase !== PHASE.CLEAR && phase !== PHASE.GAMEOVER) ? togglePause : null}
           />
 
+          {!result && <TacticalHUD tactical={tactical} phase={phase} count={count} />}
+          {result && <div className="run-coins" role="status">✦ 응원 코인 +{result.coins}</div>}
+
           {weaponToast && (
             <div key={weaponToast.id}
                  className="pointer-events-none fixed top-1/3 left-1/2 -translate-x-1/2 z-20 px-4 py-2 sm:px-6 sm:py-3 rounded-2xl bg-ddak-accent text-white text-sm sm:text-xl font-bold shadow-2xl animate-bounce max-w-[90vw] text-center">
@@ -315,7 +336,7 @@ export default function GameCanvas() {
 
           {showHint && (
             <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/60 text-white text-[11px] sm:text-[13px] animate-pulse pointer-events-none whitespace-nowrap">
-              👉 정답 쪽으로 드래그
+              👉 드래그 / 방향키·WASD 이동 · 아래로 후퇴
             </div>
           )}
 
@@ -368,6 +389,7 @@ export default function GameCanvas() {
           progress={progress}
           onPick={pickStage}
           onBack={backToStart}
+          onTrain={(id) => setProgress(buyTraining(id))}
         />
       )}
     </div>

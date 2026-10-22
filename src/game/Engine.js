@@ -13,6 +13,7 @@ import { getWeapon, MAX_WEAPON_LV, STREAK_TO_UPGRADE } from './weapons.js'
 import { createDragInput } from './input.js'
 import { playSfx } from './utils/audio.js'
 import { vibrate, HAPTIC } from './utils/haptics.js'
+import { trainingStats, volleyStats } from './training.js'
 
 export const PHASE = {
   PLAYING: 'PLAYING',
@@ -38,6 +39,8 @@ export class Engine {
     grade = 3,
     stage = 1,
     nickname = '',
+    training = {},
+    onTacticalChange,
     onFirstInput,
     onCountChange,
     onScoreChange,
@@ -55,6 +58,8 @@ export class Engine {
     this.grade = grade
     this.stage = stage
     this.nickname = nickname
+    this.training = trainingStats(training)
+    this.onTacticalChange = onTacticalChange
     this.stageDef = getStage(stage)
     this.onCountChange = onCountChange
     this.onScoreChange = onScoreChange
@@ -100,6 +105,7 @@ export class Engine {
     this._initLights()
     this._initRoad()
     this._initCrowd()
+    this.crowd.setCount(this.training.friends)
     this._initPlayer()
     this._initTrees()
     this.applyStageTheme()
@@ -324,6 +330,12 @@ export class Engine {
 
   // 60Hz 논리 1스텝
   _step() {
+    if (this.phase === PHASE.CLEAR || this.phase === PHASE.GAMEOVER) return
+    if (this.state.inputEnabled !== false) {
+      const limit = ROAD_WIDTH / 2 - 0.5
+      this.state.targetX = THREE.MathUtils.clamp(this.state.targetX + (this.state.moveX || 0) * 0.12, -limit, limit)
+      this.state.targetZ = THREE.MathUtils.clamp(this.state.targetZ + (this.state.moveZ || 0) * 0.1, 0, 5)
+    }
     // Phase 8.14.2: targetZ 자동 감쇠 제거 — 의도적 후퇴는 유지돼야 함.
     //  · 누적 버그는 input.js의 축 필터 + 최소 임계로 차단.
 
@@ -423,6 +435,7 @@ export class Engine {
       }, this.state.currentZ)
     }
     this.floaters.update(this.state.speed)
+    if (this.phase === PHASE.GAMEOVER) return
 
     // 보스 갱신 — 후퇴(currentZ) 반영해 발사체 판정
     if (this.boss) {
@@ -436,6 +449,22 @@ export class Engine {
       }, this.state.currentZ)
       this.onBossHpChange?.(this.boss.hp, BOSS.maxHp)
     }
+    if (this.phase === PHASE.GAMEOVER) return
+
+    // React 갱신은 6Hz로 제한하고 3D 렌더 루프와 분리한다.
+    this._tacticalFrame = (this._tacticalFrame || 0) + 1
+    if (this._tacticalFrame % 10 === 0) {
+      const next = this.gates.pairs.filter((p) => !p.triggered).sort((a, b) => b.z - a.z)[0]
+      this.onTacticalChange?.({
+        dps: volleyStats(this.crowd.count, this.weaponLv, this.training.power, this.feverFrames > 0).dps,
+        progress: Math.min(1, this.elapsedFrames / (60 * this.stageDef.duration)),
+        fever: this.feverFrames > 0 ? this.feverFrames / FEVER_FRAMES : Math.min(1, this.combo / FEVER_TRIGGER_COMBO),
+        feverActive: this.feverFrames > 0,
+        question: this.phase === PHASE.PLAYING ? next?.problem.question : null,
+        secondsToGate: next ? Math.max(0, Math.ceil((this.state.currentZ - next.z) / this.state.speed / 60)) : null,
+        warning: this.boss?.warningFrames > 0,
+      })
+    }
 
     // v2.3.1 §8.0.5 자동 사격 — 다발 분산: 군단의 20%가 각자 위치에서 동시 발사
     const canFire = (this.phase === PHASE.PLAYING || this.phase === PHASE.BOSS) && this.crowd.count > 0
@@ -443,12 +472,9 @@ export class Engine {
     if (canFire && this.fireCooldown <= 0) {
       const w = getWeapon(this.weaponLv)
       // crowd.count = 친구 수. 리더 포함 총원 = count + 1
-      const totalCrowd = this.crowd.count + 1
-      // 무기 shots 스탯 = 최소 동시 발사 수 — 레벨업하면 확실히 화력이 늘어난 게 보임
-      const shooterCount = Math.max(w.shots, Math.min(30, Math.floor(totalCrowd * 0.2)))
-      // 총 DPS 유지: 데미지를 사격자 수로 분산
-      const totalDamage = Math.max(1, Math.round(w.damage * Math.sqrt(totalCrowd)))
-      const perBulletDamage = Math.max(1, Math.round(totalDamage / shooterCount))
+      const volley = volleyStats(this.crowd.count, this.weaponLv, this.training.power, this.feverFrames > 0)
+      const shooterCount = volley.shots
+      const perBulletDamage = volley.perBullet
       const SPREAD_ANGLE = 0.075 // ±0.075 라디안 (≈4도)
       const shooters = this.crowd.pickRandomMembers(shooterCount, this.state.currentX, this.state.currentZ)
       for (const s of shooters) {
@@ -457,7 +483,7 @@ export class Engine {
         this.bullets.flashMuzzleAt(s.x, 1.5, s.z)
       }
       // 피버 중엔 발사 속도 2배
-      this.fireCooldown = this.feverFrames > 0 ? Math.max(4, Math.round(w.cooldown / 2)) : w.cooldown
+      this.fireCooldown = volley.cooldown
       playSfx('shoot')
     }
 
@@ -592,6 +618,9 @@ export class Engine {
 
   setPaused(paused) {
     this.paused = !!paused
+    this.state.inputEnabled = !this.paused
+    this.state.moveX = 0
+    this.state.moveZ = 0
   }
 
   _spawnBoss() {
@@ -606,7 +635,7 @@ export class Engine {
 
   // §3-3: 깨고 통과 → 효과 발동
   _handleGatePass(r) {
-    const delta = r.correct ? GATE_BASE_REWARD : -GATE_BASE_PENALTY
+    const delta = r.correct ? GATE_BASE_REWARD + this.training.recruit : -GATE_BASE_PENALTY
     const before = this.crowd.count
     const after = Math.max(0, before + delta)
     this.crowd.setCount(after)
@@ -671,7 +700,7 @@ export class Engine {
   }
 
   _setPhase(p) {
-    if (this.phase === p) return
+    if (this.phase === p || this.phase === PHASE.CLEAR || this.phase === PHASE.GAMEOVER) return
     this.phase = p
     // Phase 8.10: 클리어 시 주인공이 점프하며 환호
     if (p === PHASE.CLEAR) this.player?.triggerCelebrate(1500)

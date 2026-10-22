@@ -1,10 +1,14 @@
 // GAME_DESIGN v2 §8 — localStorage 스키마
+import { TRAINING, MAX_TRAINING, trainingCost, trainingLevel, earnedCoins } from '../game/training.js'
+
 const KEY = 'mumuwar_v2'
 
 const DEFAULT = {
   nickname: '',
   grade: 3,
   highScore: 0,
+  coins: 0,
+  training: {},
   stagesUnlocked: {},   // { grade3: [1, 2, ...] }
   stageStars: {},       // { grade3: { 1: 3 } }
   accuracy: {},         // { grade3: { correct, total, rate } }
@@ -25,15 +29,31 @@ const gkey = (g) => `grade${g}`
 export function loadProgress() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return { ...DEFAULT }
-    return { ...DEFAULT, ...JSON.parse(raw) }
+    if (!raw) return structuredClone(DEFAULT)
+    const parsed = JSON.parse(raw)
+    const p = { ...structuredClone(DEFAULT), ...parsed }
+    p.coins = Number.isFinite(p.coins) ? Math.max(0, Math.floor(p.coins)) : 0
+    p.training = Object.fromEntries(TRAINING.map(({ id }) => [id, trainingLevel(p.training, id)]))
+    return p
   } catch {
-    return { ...DEFAULT }
+    return structuredClone(DEFAULT)
   }
 }
 
 export function saveProgress(data) {
   try { localStorage.setItem(KEY, JSON.stringify(data)) } catch {}
+}
+
+export function buyTraining(id) {
+  const p = loadProgress()
+  if (!TRAINING.some((t) => t.id === id)) return p
+  const level = trainingLevel(p.training, id)
+  const cost = trainingCost(p.training, id)
+  if (level >= MAX_TRAINING || p.coins < cost) return p
+  p.coins -= cost
+  p.training = { ...p.training, [id]: level + 1 }
+  saveProgress(p)
+  return p
 }
 
 export function setGrade(grade) {
@@ -74,6 +94,7 @@ export function commitStageResult(grade, stage, { score, correct, total, cleared
   const gk = gkey(grade)
   p.totalPlays = (p.totalPlays || 0) + 1
   p.lastPlayed = new Date().toISOString()
+  p.coins += earnedCoins({ score, correct, cleared })
   if (score > (p.highScore || 0)) p.highScore = score
 
   // 누적 정답률

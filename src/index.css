@@ -21,3 +21,72 @@ body {
   max-width: 100%;
   overflow-x: hidden;
 }
+
+.training-panel { max-width: 672px; margin: 0 auto 22px; padding: 20px; color: #eeeaf8; border: 1px solid #ffffff21; border-radius: 18px; background: linear-gradient(125deg, #26233d, #141426); }
+.training-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.training-heading h2 { font-size: 22px; font-weight: 800; margin: 2px 0 8px; }
+.training-eyebrow { color: #94e2df; font-size: 10px; letter-spacing: .18em; }
+.training-heading > strong { padding: 8px 14px; color: #ffe082; background: #ffc10716; border: 1px solid #ffc10744; border-radius: 24px; white-space: nowrap; }
+.training-panel p { font-size: 12px; color: #c1bed2; }
+.training-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0 12px; }
+.training-card { display: flex; flex-direction: column; align-items: flex-start; padding: 14px; gap: 6px; border: 1px solid #8bdadf66; background: #162c36; border-radius: 12px; text-align: left; transition: transform .15s; }
+.training-card:not(:disabled):hover { transform: translateY(-3px); background: #20434e; }
+.training-card:disabled { border-color: #ffffff17; background: #ffffff05; color: #bcb9ce; }
+.training-card:focus-visible { outline: 3px solid #ffe082; outline-offset: 3px; }
+.training-icon { font-size: 25px; }
+.training-card strong { font-size: 14px; }
+.training-card small, .training-card > span:not(.training-icon) { font-size: 11px; color: #aaa9bc; }
+.training-card b { color: #ffe082; font-size: 13px; margin-top: 4px; }
+.training-note { line-height: 1.6; }
+.tactical-hud { position: fixed; z-index: 9; top: 16px; left: 50%; transform: translateX(-50%); width: min(420px, 42vw); color: #fff; text-shadow: 0 1px 3px #000; }
+.tactical-boss { top: 82px; }
+.run-progress { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; }
+.run-progress > div { flex: 1; height: 5px; border-radius: 4px; background: #ffffff30; overflow: hidden; }
+.run-progress i { display: block; height: 100%; background: #73e2d6; transition: width .2s; }
+.squad-readout { display: flex; justify-content: center; align-items: center; gap: 18px; margin-top: 10px; padding: 10px 12px; background: #131224db; border: 1px solid #ffffff20; border-radius: 14px; }
+.squad-readout > strong { font-size: 24px; color: #ffe082; white-space: nowrap; }
+.squad-readout small { font-size: 10px; padding-left: 4px; }
+.squad-readout > span { font-size: 11px; }
+.squad-readout b { display: block; font-size: 19px; color: #94e2df; }
+.squad-readout i { display: block; width: 76px; height: 4px; margin-top: 7px; background: #ffffff22; border-radius: 4px; overflow: hidden; }
+.squad-readout em { display: block; height: 100%; background: #ffc857; transition: width .16s; }
+.is-fever { color: #ffc857; }
+.next-question { margin: 14px auto 0; width: fit-content; max-width: 100%; padding: 10px 24px; background: #131224e8; border: 1px solid #ffd56d66; border-radius: 14px; text-align: center; }
+.next-question span, .next-question small { display: block; font-size: 10px; color: #cec8dd; }
+.next-question strong { display: block; font-size: clamp(18px, 2.4vw, 28px); color: #ffe082; line-height: 1.6; }
+.tactical-warning { margin: 18px auto; padding: 12px; background: #9b2727ed; border: 1px solid #ff8c8c; border-radius: 12px; text-align: center; font-size: 14px; font-weight: 800; }
+.run-coins { position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%); z-index: 45; color: #ffe082; background: #191729ee; padding: 10px 20px; border: 1px solid #ffd56d66; border-radius: 24px; font-weight: 800; pointer-events: none; }
+@media (max-width: 640px) {
+  .hud-left { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; left: 8px; right: 8px; top: 8px; align-items: stretch; }
+  .hud-left .player-card-wrapper, .hud-left .stage-badge-large { display: none; }
+  .hud-left .resource-card { width: auto; min-width: 0; padding: 6px; margin: 0; min-height: 36px; gap: 4px; }
+  .hud-left .res-label { display: none; }
+  .hud-left .res-icon { width: 18px; font-size: 14px; }
+  .hud-left .res-value { font-size: 14px; }
+  .hud-left .res-sub { font-size: 9px; margin-left: 0; }
+  .hud-right { flex-direction: row; align-items: center; justify-content: flex-end; gap: 6px; top: 51px; right: 8px; }
+  .hud-right .counter-card { min-width: 64px; margin: 0; padding: 6px 10px; }
+  .hud-right .counter-value { min-width: 0; font-size: 16px; }
+  .hud-right .counter-icon { font-size: 16px; }
+  .hud-right .pause-btn { margin: 0; width: 38px; height: 38px; font-size: 14px; }
+  .training-panel { padding: 14px; }
+  .training-heading h2 { font-size: 18px; }
+  .training-grid { gap: 6px; }
+  .training-card { padding: 10px 7px; }
+  .training-card strong { font-size: 12px; }
+  .training-card strong small { display: block; }
+  .tactical-hud { top: 100px; width: min(340px, 90vw); }
+  .boss-hp-wrap { top: 53px !important; left: 8px !important; transform: none !important; width: 140px !important; max-width: 37vw !important; }
+  .boss-hp-wrap .boss-hp-label { font-size: 9px; }
+  .squad-readout { gap: 16px; padding: 6px 10px; margin-top: 6px; }
+  .squad-readout > strong { font-size: 19px; }
+  .next-question { margin-top: 6px; padding: 6px 18px; }
+}
+@media (max-height: 540px) and (min-width: 641px) {
+  .tactical-hud { top: 8px; width: 36vw; }
+  .squad-readout { padding: 5px 10px; gap: 10px; }
+  .next-question { margin-top: 6px; padding: 5px 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .training-card, .run-progress i, .squad-readout em { transition: none; }
+}
