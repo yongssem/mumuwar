@@ -1,5 +1,6 @@
 import { STAGES, STAGE_COUNT } from '../game/stages.js'
 import { unlockedStages } from '../lib/storage.js'
+import { TRAINING, MAX_TRAINING, trainingLevel, trainingCost, trainingStats } from '../game/training.js'
 
 function Stars({ filled, total = 3 }) {
   const items = []
@@ -34,12 +35,13 @@ function StageCard({ stage, name, unlocked, stars, hasBoss, onPick }) {
   )
 }
 
-export default function StageSelect({ grade, progress, onPick, onBack }) {
+export default function StageSelect({ grade, progress, onPick, onBack, onTrain }) {
   const unlocked = new Set(unlockedStages(progress, grade))
   const starsMap = progress.stageStars?.[`grade${grade}`] || {}
   const acc = progress.accuracy?.[`grade${grade}`]
   const accRate = acc && acc.total > 0 ? Math.round(acc.rate * 100) : null
   const stageList = Array.from({ length: STAGE_COUNT }, (_, i) => i + 1)
+  const stats = trainingStats(progress.training)
 
   return (
     <div className="fixed inset-0 z-30" style={{ background: 'var(--bg-primary)' }}>
@@ -70,6 +72,21 @@ export default function StageSelect({ grade, progress, onPick, onBack }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <section className="training-panel" aria-label="출전 준비">
+            <div className="training-heading"><div><span className="training-eyebrow">READY TO RUN</span><h2>우리 반 출전 준비</h2></div><strong aria-label="보유 응원 코인">✦ {progress.coins || 0}</strong></div>
+            <p>시작 친구 {stats.friends}명 · 화력 {Math.round(stats.power * 100)}% · 정답 보너스 +{stats.recruit}명</p>
+            <div className="training-grid">
+              {TRAINING.map((item) => {
+                const level = trainingLevel(progress.training, item.id)
+                const cost = trainingCost(progress.training, item.id)
+                const maxed = level >= MAX_TRAINING
+                return <button key={item.id} className="training-card" disabled={maxed || (progress.coins || 0) < cost} onClick={() => onTrain(item.id)} aria-label={`${item.name} 강화, ${maxed ? '최고 레벨' : `${cost} 코인`}`}>
+                  <span className="training-icon">{item.icon}</span><strong>{item.name} <small>Lv.{level}</small></strong><span>{item.description}</span><b>{maxed ? '훈련 완료' : `✦ ${cost}`}</b>
+                </button>
+              })}
+            </div>
+            <p className="training-note">플레이하면 응원 코인 획득 · 클리어 +30 · 정답마다 +5 · 훈련은 다음 출전부터 적용</p>
+          </section>
           <div className="max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
             {stageList.map((s) => (
               <StageCard

@@ -50,6 +50,17 @@ export class Boss {
     this.alive = true
     this.attackTimer = 60
     this.swayPhase = 0
+    this.warningFrames = 0
+    this.targetX = 0
+    this.targetZ = 0
+    this.telegraph = new THREE.Mesh(
+      new THREE.PlaneGeometry(BOSS.bulletHitRadius * 2, 34),
+      new THREE.MeshBasicMaterial({ color: 0xff5252, transparent: true, opacity: 0.24, depthWrite: false, side: THREE.DoubleSide }),
+    )
+    this.telegraph.rotation.x = -Math.PI / 2
+    this.telegraph.position.y = 0.06
+    this.telegraph.visible = false
+    this.scene.add(this.telegraph)
 
     this.mesh = buildBossMesh()
     this.mesh.position.set(0, 0, BOSS.bossZ)
@@ -71,6 +82,10 @@ export class Boss {
     if (this.hp <= 0) {
       this.hp = 0
       this.alive = false
+      this.telegraph.visible = false
+      this.warningFrames = 0
+      this.bullet.active = false
+      this.bullet.mesh.visible = false
       return true
     }
     return false
@@ -96,9 +111,25 @@ export class Boss {
     }
 
     // 공격 쿨다운
-    this.attackTimer -= 1
-    if (this.attackTimer <= 0 && !this.bullet.active) {
-      this._fireAtPlayer(leaderX)
+    if (this.warningFrames > 0) {
+      this.warningFrames -= 1
+      this.telegraph.material.opacity = 0.18 + Math.sin(this.warningFrames * 0.7) ** 2 * 0.25
+      if (this.warningFrames === 0) {
+        this._fireAtPlayer(this.targetX, this.targetZ)
+        this.telegraph.visible = false
+      }
+    } else if (!this.bullet.active) {
+      this.attackTimer -= 1
+    }
+    if (this.attackTimer <= 0 && !this.bullet.active && this.warningFrames === 0) {
+      // 조준 위치를 고정한 뒤 0.6초간 공격 경로를 보여준다.
+      this.targetX = leaderX
+      this.targetZ = leaderZ
+      this.warningFrames = 36
+      const sx = this.mesh.position.x, sz = this.mesh.position.z
+      this.telegraph.position.set((sx + leaderX) / 2, 0.06, (sz + leaderZ) / 2)
+      this.telegraph.rotation.z = -Math.atan2(leaderX - sx, leaderZ - sz)
+      this.telegraph.visible = true
       this.attackTimer = BOSS.attackInterval
     }
 
@@ -122,12 +153,12 @@ export class Boss {
     }
   }
 
-  _fireAtPlayer(leaderX) {
+  _fireAtPlayer(leaderX, leaderZ = 0) {
     const b = this.bullet
     const sx = this.mesh.position.x
     const sz = this.mesh.position.z
     const dx = leaderX - sx
-    const dz = 0 - sz
+    const dz = leaderZ - sz
     const len = Math.hypot(dx, dz) || 1
     b.x = sx
     b.z = sz
@@ -150,6 +181,9 @@ export class Boss {
   dispose() {
     this.scene.remove(this.mesh)
     this.scene.remove(this.bullet.mesh)
+    this.scene.remove(this.telegraph)
+    this.telegraph.geometry.dispose()
+    this.telegraph.material.dispose()
     this.mesh.traverse((o) => {
       if (o.geometry) o.geometry.dispose()
       if (o.material) {

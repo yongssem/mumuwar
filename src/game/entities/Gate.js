@@ -108,7 +108,7 @@ function drawHpBar(ctx, hp, maxHp) {
   ctx.font = 'bold 48px sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  const label = `${hp} / ${maxHp}`
+  const label = `${Math.ceil(hp)} / ${maxHp}`
   ctx.strokeText(label, W / 2, H / 2)
   ctx.fillText(label, W / 2, H / 2)
 }
